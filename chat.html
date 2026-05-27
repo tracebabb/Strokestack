@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Round Chat — StrokeStack</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black:  #090c0b;
+  --dark:   #0f1512;
+  --card:   #141a17;
+  --card2:  #1a2320;
+  --green:  #2dcc7e;
+  --green-dim: #1a7d4c;
+  --green-glow: rgba(45,204,126,0.12);
+  --green-border: rgba(45,204,126,0.28);
+  --gold:   #c9a84c;
+  --gold-glow: rgba(201,168,76,0.1);
+  --gold-border: rgba(201,168,76,0.28);
+  --red:    #f87171;
+  --blue:   #60a5fa;
+  --text:   #edeae2;
+  --muted:  #6b7d74;
+  --border: rgba(255,255,255,0.06);
+  --me:     rgba(45,204,126,0.14);
+  --me-border: rgba(45,204,126,0.3);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  display: flex; flex-direction: column;
+}
+
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.25;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
+
+/* ── NAV ── */
+.chat-nav {
+  flex-shrink: 0; height: 58px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 16px;
+  background: rgba(9,12,11,0.97); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border); z-index: 50;
+}
+.back-btn {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card2); border: 1px solid var(--border);
+  cursor: pointer; transition: all .2s;
+  color: var(--muted);
+}
+.back-btn:hover { color: var(--text); }
+.back-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+.nav-round-info { flex: 1; min-width: 0; }
+.nav-round-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.nav-round-meta { font-size: 11px; color: var(--muted); }
+.nav-live-pill {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 500; color: var(--green);
+  background: var(--green-glow); border: 1px solid var(--green-border);
+  padding: 3px 8px; border-radius: 100px; flex-shrink: 0;
+}
+.nav-live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 1.4s ease infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+/* ── TABS ── */
+.chat-tabs {
+  flex-shrink: 0;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  background: var(--dark); border-bottom: 1px solid var(--border); height: 44px;
+}
+.chat-tab {
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px; font-size: 11px; letter-spacing: .05em;
+  color: var(--muted); cursor: pointer; transition: all .2s;
+  border-bottom: 2px solid transparent;
+}
+.chat-tab.active { color: var(--green); border-bottom-color: var(--green); }
+.chat-tab svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── PANEL WRAP ── */
+.panel-wrap { flex: 1; overflow: hidden; position: relative; }
+.panel { position: absolute; inset: 0; display: none; flex-direction: column; }
+.panel.active { display: flex; }
+
+/* ── CHAT PANEL ── */
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 14px 14px 8px;
+  display: flex; flex-direction: column; gap: 10px;
+  scrollbar-width: none;
+}
+.chat-messages::-webkit-scrollbar { display: none; }
+
+/* System events */
+.sys-event {
+  text-align: center; font-size: 11px; color: var(--muted);
+  display: flex; align-items: center; gap: 8px; padding: 2px 0;
+}
+.sys-event::before, .sys-event::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.sys-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--card2); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 100px; font-size: 11px; white-space: nowrap;
+}
+.sys-chip.birdie { border-color: var(--green-border); color: var(--green); background: var(--green-glow); }
+.sys-chip.eagle { border-color: var(--gold-border); color: var(--gold); background: var(--gold-glow); }
+.sys-chip.skin { border-color: var(--gold-border); color: var(--gold); background: var(--gold-glow); }
+.sys-chip.bogey { border-color: rgba(248,113,113,.28); color: var(--red); background: rgba(248,113,113,.06); }
+.sys-chip.dots { border-color: rgba(167,139,250,.28); color: #a78bfa; background: rgba(167,139,250,.08); }
+
+/* Message bubbles */
+.msg-row { display: flex; gap: 8px; align-items: flex-end; }
+.msg-row.mine { flex-direction: row-reverse; }
+.msg-av {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 500; margin-bottom: 2px;
+}
+.msg-col { display: flex; flex-direction: column; gap: 2px; max-width: 78%; }
+.msg-row.mine .msg-col { align-items: flex-end; }
+.msg-name { font-size: 10px; color: var(--muted); padding: 0 4px; }
+.msg-row.mine .msg-name { display: none; }
+.msg-bubble {
+  padding: 9px 12px; border-radius: 14px; font-size: 14px; line-height: 1.5;
+  color: var(--text);
+  background: var(--card2); border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  word-break: break-word;
+}
+.msg-row.mine .msg-bubble {
+  background: var(--me); border-color: var(--me-border);
+  border-bottom-left-radius: 14px; border-bottom-right-radius: 4px;
+}
+.msg-time { font-size: 10px; color: var(--muted); padding: 0 4px; }
+
+/* Reaction overlay on bubble */
+.msg-bubble-wrap { position: relative; }
+.bubble-react {
+  position: absolute; bottom: -6px; right: 8px;
+  font-size: 12px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 100px; padding: 1px 5px;
+  display: flex; gap: 2px;
+}
+
+/* ── CHAT INPUT ── */
+.chat-input-bar {
+  flex-shrink: 0; padding: 10px 12px;
+  background: var(--dark); border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.quick-reactions { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.quick-reactions::-webkit-scrollbar { display: none; }
+.quick-react-btn {
+  flex-shrink: 0; font-size: 13px; padding: 5px 10px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 100px; cursor: pointer; transition: all .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.quick-react-btn:hover { border-color: var(--green-border); transform: scale(1.1); }
+
+.trash-presets { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.trash-presets::-webkit-scrollbar { display: none; }
+.trash-preset-btn {
+  flex-shrink: 0; font-size: 11px; font-weight: 500;
+  padding: 5px 10px; background: rgba(248,113,113,.06);
+  border: 1px solid rgba(248,113,113,.2); color: var(--red);
+  border-radius: 100px; cursor: pointer; transition: all .15s;
+  font-family: 'DM Sans', sans-serif; white-space: nowrap;
+}
+.trash-preset-btn:hover { background: rgba(248,113,113,.12); }
+
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input {
+  flex: 1; background: var(--card2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 10px 16px; min-height: 42px; max-height: 100px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text);
+  outline: none; resize: none; transition: border-color .2s; line-height: 1.5;
+  scrollbar-width: none;
+}
+.chat-input::placeholder { color: var(--muted); }
+.chat-input:focus { border-color: var(--green-border); }
+.send-btn {
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+  background: var(--green); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.send-btn:hover { background: #3ddc8e; transform: scale(1.05); }
+.send-btn:active { transform: scale(.95); }
+.send-btn svg { width: 16px; height: 16px; stroke: var(--black); fill: none; stroke-width: 2.5; }
+.send-btn.empty { background: var(--card2); border: 1px solid var(--border); }
+.send-btn.empty svg { stroke: var(--muted); }
+
+/* ── PLAYERS PANEL ── */
+.players-panel-inner { padding: 14px; overflow-y: auto; flex: 1; }
+.player-live-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px;
+}
+.plc-av {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 500;
+}
+.plc-info { flex: 1; }
+.plc-name { font-size: 15px; font-weight: 500; color: var(--text); }
+.plc-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.plc-score-wrap { text-align: right; }
+.plc-score { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: .03em; line-height: 1; }
+.plc-score.pos { color: var(--green); }
+.plc-score.neg { color: var(--red); }
+.plc-score.even { color: var(--muted); }
+.plc-thru { font-size: 10px; color: var(--muted); }
+.plc-dots-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.plc-dot-chip {
+  font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 100px;
+  background: var(--gold-glow); border: 1px solid var(--gold-border); color: var(--gold);
+}
+.plc-money-row { display: flex; gap: 6px; margin-top: 6px; }
+.plc-money-chip {
+  font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 100px;
+  border: 1px solid var(--border); background: var(--card2); color: var(--muted);
+}
+.plc-money-chip.up { border-color: var(--green-border); color: var(--green); background: var(--green-glow); }
+.plc-money-chip.down { border-color: rgba(248,113,113,.25); color: var(--red); background: rgba(248,113,113,.06); }
+
+/* ── INVITE PANEL ── */
+.invite-panel-inner { padding: 14px; overflow-y: auto; flex: 1; }
+.invite-code-card {
+  background: var(--card); border: 1px solid var(--green-border);
+  border-radius: 14px; padding: 20px; margin-bottom: 16px; text-align: center;
+  background: linear-gradient(135deg, var(--card) 60%, rgba(45,204,126,0.05) 100%);
+}
+.invite-code-label { font-size: 10px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.invite-code-val {
+  font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: .15em;
+  color: var(--green); line-height: 1; margin-bottom: 6px;
+}
+.invite-code-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.invite-link {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; font-size: 12px;
+  color: var(--muted); font-family: 'DM Sans', sans-serif;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+  cursor: pointer; transition: border-color .2s;
+}
+.invite-link:hover { border-color: var(--green-border); }
+.invite-link-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.invite-link-copy { color: var(--green); font-size: 11px; font-weight: 500; flex-shrink: 0; margin-left: 8px; }
+.invite-action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.invite-action-btn {
+  padding: 11px; border-radius: 10px; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; justify-content: center; gap: 7px; border: none;
+}
+.iab-green { background: var(--green); color: var(--black); }
+.iab-green:hover { background: #3ddc8e; }
+.iab-ghost { background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
+.iab-ghost:hover { color: var(--text); border-color: rgba(255,255,255,.12); }
+.iab-icon { font-size: 15px; }
+
+.invite-players-title {
+  font-size: 10px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); margin: 16px 0 10px;
+}
+.invite-player-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 13px; margin-bottom: 8px;
+  transition: border-color .2s;
+}
+.invite-player-row.joined { border-color: var(--green-border); }
+.ipr-av {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500;
+}
+.ipr-info { flex: 1; }
+.ipr-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.ipr-status { font-size: 11px; margin-top: 1px; }
+.ipr-status.joined { color: var(--green); }
+.ipr-status.pending { color: var(--muted); }
+.ipr-action {
+  font-size: 11px; font-weight: 500; padding: 5px 12px; border-radius: 100px;
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .2s;
+}
+.ipr-action:hover { border-color: var(--green-border); color: var(--green); }
+.ipr-joined-badge {
+  font-size: 10px; color: var(--green);
+  display: flex; align-items: center; gap: 3px;
+}
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(12px);
+  background: var(--card2); border: 1px solid var(--green-border);
+  color: var(--green); font-size: 13px; font-weight: 500;
+  padding: 9px 20px; border-radius: 100px; z-index: 300;
+  opacity: 0; transition: all .3s; white-space: nowrap; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.msg-row { animation: fadeIn .25s ease both; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="chat-nav">
+  <div class="back-btn" onclick="history.back()">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </div>
+  <div class="nav-round-info">
+    <div class="nav-round-name">Saturday Nassau — SS-4821</div>
+    <div class="nav-round-meta">Cape Coral GC · Hole 9 of 18 · 4 players</div>
+  </div>
+  <div class="nav-live-pill"><div class="nav-live-dot"></div> Live</div>
+</div>
+
+<!-- TABS -->
+<div class="chat-tabs">
+  <div class="chat-tab active" onclick="switchTab('chat')" id="tab-chat">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Chat
+  </div>
+  <div class="chat-tab" onclick="switchTab('players')" id="tab-players">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Players
+  </div>
+  <div class="chat-tab" onclick="switchTab('invite')" id="tab-invite">
+    <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+    Invite
+  </div>
+</div>
+
+<!-- PANELS -->
+<div class="panel-wrap">
+
+  <!-- CHAT -->
+  <div class="panel active" id="panel-chat">
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-bar">
+      <!-- Quick emoji reactions -->
+      <div class="quick-reactions" id="quick-reactions"></div>
+      <!-- Trash talk presets -->
+      <div class="trash-presets" id="trash-presets"></div>
+      <!-- Input row -->
+      <div class="input-row">
+        <textarea class="chat-input" id="chat-input"
+          placeholder="Talk your trash…"
+          rows="1"
+          oninput="handleInput()"
+          onkeydown="handleKey(event)"></textarea>
+        <button class="send-btn empty" id="send-btn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYERS -->
+  <div class="panel" id="panel-players">
+    <div class="players-panel-inner" id="players-list"></div>
+  </div>
+
+  <!-- INVITE -->
+  <div class="panel" id="panel-invite">
+    <div class="invite-panel-inner">
+      <div class="invite-code-card">
+        <div class="invite-code-label">Round code</div>
+        <div class="invite-code-val">SS-4821</div>
+        <div class="invite-code-sub">Share this code or link to invite players</div>
+        <div class="invite-link" onclick="copyLink()">
+          <div class="invite-link-url">strokestack.golf/join/SS-4821</div>
+          <div class="invite-link-copy">Copy →</div>
+        </div>
+        <div class="invite-action-row">
+          <button class="invite-action-btn iab-green" onclick="shareInvite()">
+            <span class="iab-icon">📤</span> Share link
+          </button>
+          <button class="invite-action-btn iab-green" onclick="shareText()">
+            <span class="iab-icon">💬</span> Text invite
+          </button>
+          <button class="invite-action-btn iab-ghost" onclick="copyCode()">
+            <span class="iab-icon">📋</span> Copy code
+          </button>
+          <button class="invite-action-btn iab-ghost" onclick="shareQR()">
+            <span class="iab-icon">📸</span> QR code
+          </button>
+        </div>
+      </div>
+
+      <div class="invite-players-title">Players in this round</div>
+      <div id="invite-players-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+const ME = { name:'Mike R.', initials:'MR', av:'av0', avBg:'rgba(45,204,126,.15)', avCol:'var(--green)' };
+
+const PLAYERS_DATA = [
+  { name:'Mike R.',  initials:'MR', av:'av0', avBg:'rgba(45,204,126,.15)', avCol:'var(--green)', hcp:12, score:'-1', scoreClass:'pos', thru:8, dots:4, skins:1, nassau:'+$5', money:'up' },
+  { name:'Jake T.',  initials:'JT', av:'av1', avBg:'rgba(96,165,250,.15)', avCol:'var(--blue)',  hcp:6,  score:'E',  scoreClass:'even',thru:8, dots:2, skins:0, nassau:'E',   money:'even' },
+  { name:'Dan S.',   initials:'DS', av:'av2', avBg:'rgba(201,168,76,.15)', avCol:'var(--gold)',  hcp:18, score:'+3', scoreClass:'neg', thru:8, dots:3, skins:1, nassau:'-$5', money:'down' },
+  { name:'Chris L.', initials:'CL', av:'av3', avBg:'rgba(248,113,113,.15)','avCol':'var(--red)', hcp:22, score:'+5', scoreClass:'neg', thru:8, dots:1, skins:0, nassau:'-$5', money:'down' },
+];
+
+const INVITE_STATUS = [
+  { ...PLAYERS_DATA[0], status:'joined', joined:true },
+  { ...PLAYERS_DATA[1], status:'joined', joined:true },
+  { ...PLAYERS_DATA[2], status:'joined', joined:true },
+  { ...PLAYERS_DATA[3], status:'joined', joined:true },
+  { name:'Rob M.',  initials:'RM', av:'av4', avBg:'rgba(167,139,250,.15)', avCol:'#a78bfa', status:'pending', joined:false },
+];
+
+// Pre-loaded messages (simulating a real round chat)
+const INIT_MESSAGES = [
+  { type:'sys',    chip:'birdie',  text:'🐦 Jake T. — Birdie on Hole 3', time:'' },
+  { type:'msg',    from:'Jake T.', initials:'JT', avBg:'rgba(96,165,250,.15)', avCol:'var(--blue)', text:'That 7-iron was pure 😤', time:'8:42 AM', me:false, reactions:['🔥','🔥','👏'] },
+  { type:'msg',    from:'Dan S.',  initials:'DS', avBg:'rgba(201,168,76,.15)', avCol:'var(--gold)', text:'Enjoy it while it lasts lol', time:'8:43 AM', me:false, reactions:[] },
+  { type:'sys',    chip:'skin',    text:'🥇 Skin won · Hole 3 · Jake T. · $5', time:'' },
+  { type:'msg',    from:'Chris L.',initials:'CL', avBg:'rgba(248,113,113,.15)', avCol:'var(--red)', text:'Of course you win a skin the one time I 3-putt 😭', time:'8:51 AM', me:false, reactions:['😂'] },
+  { type:'msg',    from:'Mike R.', initials:'MR', avBg:'rgba(45,204,126,.15)', avCol:'var(--green)', text:'Chris how do you three putt a par 3 💀', time:'8:52 AM', me:true, reactions:['🔥','🔥','🔥'] },
+  { type:'sys',    chip:'bogey',   text:'🔴 Dan S. — Bogey on Hole 5', time:'' },
+  { type:'msg',    from:'Dan S.',  initials:'DS', avBg:'rgba(201,168,76,.15)', avCol:'var(--gold)', text:'That rough is absolutely brutal on 5', time:'9:04 AM', me:false, reactions:[] },
+  { type:'msg',    from:'Jake T.', initials:'JT', avBg:'rgba(96,165,250,.15)', avCol:'var(--blue)', text:'Skill issue Dan 😂', time:'9:04 AM', me:false, reactions:['🔥','🔥'] },
+  { type:'sys',    chip:'dots',    text:'🟢 Mike R. — One-putt on Hole 7 · +1 dot', time:'' },
+  { type:'msg',    from:'Chris L.',initials:'CL', avBg:'rgba(248,113,113,.15)', avCol:'var(--red)', text:'Mike is collecting dots like pokemon cards out here', time:'9:18 AM', me:false, reactions:['😂','😂','👏'] },
+];
+
+const TRASH_PRESETS = [
+  '💀 Cooked', '😂 Skill issue', '🫡 Respect', '🔥 Let\'s go!',
+  'That rough is brutal', 'Buy the drinks tonight 🍺', 'GG',
+];
+
+const QUICK_REACTS = ['🔥', '😂', '👏', '😤', '💀', '🏌️', '🎯', '💵'];
+
+let messages = [...INIT_MESSAGES];
+let currentTab = 'chat';
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  buildQuickReacts();
+  buildTrashPresets();
+  buildMessages();
+  buildPlayers();
+  buildInvitePlayers();
+  scrollToBottom();
+});
+
+// ── QUICK REACTS ──
+function buildQuickReacts() {
+  document.getElementById('quick-reactions').innerHTML = QUICK_REACTS.map(e =>
+    `<button class="quick-react-btn" onclick="quickReact('${e}')">${e}</button>`
+  ).join('');
+}
+
+function quickReact(emoji) {
+  const input = document.getElementById('chat-input');
+  input.value += emoji;
+  handleInput();
+  input.focus();
+}
+
+// ── TRASH PRESETS ──
+function buildTrashPresets() {
+  document.getElementById('trash-presets').innerHTML = TRASH_PRESETS.map(t =>
+    `<button class="trash-preset-btn" onclick="usePreset('${t.replace(/'/g,"\\'")}')">${t}</button>`
+  ).join('');
+}
+
+function usePreset(text) {
+  sendMessageText(text);
+}
+
+// ── MESSAGES ──
+function buildMessages() {
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = messages.map(m => renderMessage(m)).join('');
+}
+
+function renderMessage(m) {
+  if (m.type === 'sys') {
+    return `<div class="sys-event"><div class="sys-chip ${m.chip}">${m.text}</div></div>`;
+  }
+  const isMe = m.me;
+  const reactHtml = m.reactions?.length ? `<div class="bubble-react">${[...new Set(m.reactions)].join('')} ${m.reactions.length}</div>` : '';
+  return `<div class="msg-row ${isMe?'mine':''}">
+    ${!isMe ? `<div class="msg-av" style="background:${m.avBg};color:${m.avCol}">${m.initials}</div>` : ''}
+    <div class="msg-col">
+      ${!isMe ? `<div class="msg-name">${m.from}</div>` : ''}
+      <div class="msg-bubble-wrap">
+        <div class="msg-bubble">${m.text}</div>
+        ${reactHtml}
+      </div>
+      <div class="msg-time">${m.time}</div>
+    </div>
+    ${isMe ? `<div class="msg-av" style="background:${ME.avBg};color:${ME.avCol}">${ME.initials}</div>` : ''}
+  </div>`;
+}
+
+function handleInput() {
+  const input = document.getElementById('chat-input');
+  const btn = document.getElementById('send-btn');
+  const hasText = input.value.trim().length > 0;
+  btn.className = hasText ? 'send-btn' : 'send-btn empty';
+  // Auto resize
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  sendMessageText(text);
+  input.value = '';
+  input.style.height = 'auto';
+  handleInput();
+}
+
+function sendMessageText(text) {
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+  const msg = {
+    type: 'msg', from: ME.name, initials: ME.initials,
+    avBg: ME.avBg, avCol: ME.avCol,
+    text, time, me: true, reactions: []
+  };
+  messages.push(msg);
+
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.innerHTML = renderMessage(msg);
+  container.appendChild(div.firstElementChild);
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  const c = document.getElementById('chat-messages');
+  if (c) c.scrollTop = c.scrollHeight;
+}
+
+// ── PLAYERS ──
+function buildPlayers() {
+  document.getElementById('players-list').innerHTML = PLAYERS_DATA.map(p => `
+    <div class="player-live-card">
+      <div class="plc-av" style="background:${p.avBg};color:${p.avCol}">${p.initials}</div>
+      <div class="plc-info">
+        <div class="plc-name">${p.name}</div>
+        <div class="plc-detail">HCP ${p.hcp} · Thru ${p.thru}</div>
+        <div class="plc-dots-row">
+          <div class="plc-dot-chip">🟢 ${p.dots} dots</div>
+          <div class="plc-dot-chip">🥇 ${p.skins} skin${p.skins!==1?'s':''}</div>
+        </div>
+        <div class="plc-money-row">
+          <div class="plc-money-chip ${p.money}">Nassau: ${p.nassau}</div>
+        </div>
+      </div>
+      <div class="plc-score-wrap">
+        <div class="plc-score ${p.scoreClass}">${p.score}</div>
+        <div class="plc-thru">thru ${p.thru}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── INVITE ──
+function buildInvitePlayers() {
+  document.getElementById('invite-players-list').innerHTML = INVITE_STATUS.map(p => `
+    <div class="invite-player-row ${p.joined?'joined':''}">
+      <div class="ipr-av" style="background:${p.avBg};color:${p.avCol}">${p.initials}</div>
+      <div class="ipr-info">
+        <div class="ipr-name">${p.name}</div>
+        <div class="ipr-status ${p.joined?'joined':'pending'}">${p.joined?'✓ Joined round':'Invite pending…'}</div>
+      </div>
+      ${!p.joined ? `<button class="ipr-action" onclick="nudge('${p.name}')">Nudge</button>` : `<div class="ipr-joined-badge">✓ In</div>`}
+    </div>`).join('');
+}
+
+function nudge(name) {
+  showToast(`Reminder sent to ${name}`);
+}
+
+function copyLink() {
+  navigator.clipboard?.writeText('https://strokestack.golf/join/SS-4821').catch(()=>{});
+  showToast('Link copied! ✓');
+}
+
+function copyCode() {
+  navigator.clipboard?.writeText('SS-4821').catch(()=>{});
+  showToast('Code SS-4821 copied ✓');
+}
+
+function shareInvite() {
+  const url = 'https://strokestack.golf/join/SS-4821';
+  if (navigator.share) {
+    navigator.share({ title:'Join my StrokeStack round', url });
+  } else {
+    copyLink();
+  }
+}
+
+function shareText() {
+  const msg = `Join my golf round on StrokeStack!\nRound code: SS-4821\nLink: https://strokestack.golf/join/SS-4821`;
+  if (navigator.share) {
+    navigator.share({ title:'StrokeStack Round', text:msg });
+  } else {
+    navigator.clipboard?.writeText(msg).catch(()=>{});
+    showToast('Invite text copied ✓');
+  }
+}
+
+function shareQR() {
+  showToast('QR code feature coming soon');
+}
+
+// ── TABS ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  if (tab === 'chat') scrollToBottom();
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

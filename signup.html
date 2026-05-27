@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Join StrokeStack</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black:  #090c0b;
+  --dark:   #0f1512;
+  --card:   #141a17;
+  --card2:  #1a2320;
+  --green:  #2dcc7e;
+  --green-dim: #1a7d4c;
+  --green-glow: rgba(45,204,126,0.12);
+  --green-border: rgba(45,204,126,0.28);
+  --gold:   #c9a84c;
+  --red:    #f87171;
+  --text:   #edeae2;
+  --muted:  #6b7d74;
+  --border: rgba(255,255,255,0.06);
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND ── */
+.bg-glow {
+  position: fixed; pointer-events: none; z-index: 0;
+}
+.bg-glow-1 {
+  top: -120px; left: -80px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(45,204,126,0.07) 0%, transparent 65%);
+}
+.bg-glow-2 {
+  bottom: -100px; right: -60px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 65%);
+}
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.3;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
+
+/* ── LAYOUT ── */
+.auth-wrap {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+  padding: 0 0 40px;
+}
+
+/* ── LOGO HEADER ── */
+.auth-logo {
+  padding: 32px 24px 0;
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--green); display: flex; align-items: center; justify-content: center;
+}
+.logo-icon svg { width: 22px; height: 22px; stroke: var(--black); fill: none; stroke-width: 2; }
+.logo-text {
+  font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: .05em; color: var(--text);
+}
+.logo-text span { color: var(--green); }
+
+/* ── HERO ── */
+.auth-hero {
+  padding: 32px 24px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.auth-hero-step {
+  font-size: 10px; font-weight: 500; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.step-pip {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s ease infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.auth-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px; letter-spacing: .02em; line-height: 1;
+  color: var(--text); margin-bottom: 8px;
+}
+.auth-title .accent { color: var(--green); }
+.auth-sub { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 340px; }
+
+/* ── MODE TOGGLE ── */
+.mode-toggle {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 4px; margin: 24px 24px 0; gap: 3px;
+}
+.mode-btn {
+  padding: 9px; border-radius: 7px; text-align: center;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all .2s; color: var(--muted);
+  font-family: 'DM Sans', sans-serif; border: none; background: none;
+}
+.mode-btn.active {
+  background: var(--green); color: var(--black);
+}
+
+/* ── FORMS ── */
+.auth-form { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.auth-form.hidden { display: none; }
+
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+.field-label {
+  font-size: 11px; font-weight: 500; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.field-input-wrap { position: relative; }
+.field-input {
+  width: 100%; background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 16px;
+  font-family: 'DM Sans', sans-serif; font-size: 15px;
+  color: var(--text); outline: none; transition: all .2s;
+}
+.field-input::placeholder { color: var(--muted); }
+.field-input:focus { border-color: var(--green-border); background: var(--card2); }
+.field-input.valid { border-color: var(--green-border); }
+.field-input.invalid { border-color: rgba(248,113,113,.4); }
+.field-input.with-prefix { padding-left: 36px; }
+.field-prefix {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 15px; color: var(--muted); pointer-events: none;
+  font-family: 'DM Mono', monospace;
+}
+.field-suffix {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  cursor: pointer; color: var(--muted); transition: color .2s;
+}
+.field-suffix:hover { color: var(--text); }
+.field-suffix svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.field-hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.field-hint.valid { color: var(--green); }
+.field-hint.invalid { color: var(--red); }
+
+/* USERNAME AVAILABILITY */
+.username-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; margin-top: 4px; min-height: 16px;
+}
+.us-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.us-checking { color: var(--muted); }
+.us-checking .us-dot { background: var(--muted); animation: pulse .8s ease infinite; }
+.us-available { color: var(--green); }
+.us-available .us-dot { background: var(--green); }
+.us-taken { color: var(--red); }
+.us-taken .us-dot { background: var(--red); }
+
+/* HANDICAP SELECTOR */
+.hcp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.hcp-opt {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 4px; text-align: center;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  cursor: pointer; transition: all .18s;
+}
+.hcp-opt:hover { border-color: rgba(255,255,255,.12); color: var(--text); }
+.hcp-opt.selected { border-color: var(--green-border); background: var(--green-glow); color: var(--green); }
+
+/* AVATAR PICKER */
+.avatar-section { display: flex; flex-direction: column; gap: 10px; }
+.avatar-preview {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+}
+.avatar-circle {
+  width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  border: 2px solid var(--green-border);
+  transition: all .2s;
+}
+.avatar-info { flex: 1; }
+.avatar-name { font-size: 16px; font-weight: 500; color: var(--text); }
+.avatar-handle { font-size: 13px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-swatch {
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: all .15s;
+}
+.color-swatch.selected { border-color: var(--text); transform: scale(1.1); }
+
+/* DIVIDER */
+.auth-divider {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 12px; color: var(--muted);
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* SOCIAL AUTH */
+.social-btn {
+  width: 100%; padding: 13px; border-radius: 10px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: all .2s; border: 1px solid var(--border); background: var(--card2);
+  color: var(--text);
+}
+.social-btn:hover { background: var(--card); border-color: rgba(255,255,255,.12); }
+.social-icon { font-size: 18px; }
+
+/* SUBMIT BTN */
+.submit-btn {
+  width: 100%; padding: 15px; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+  background: var(--green); color: var(--black); border: none; cursor: pointer;
+  transition: all .2s; position: relative; overflow: hidden;
+}
+.submit-btn:hover { background: #3ddc8e; transform: translateY(-1px); }
+.submit-btn:active { transform: scale(.98); }
+.submit-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.submit-btn.loading::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+  animation: shimmer 1s ease infinite;
+}
+@keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+
+/* STEPS */
+.step-indicator {
+  display: flex; align-items: center; gap: 6px; padding: 0 24px 20px;
+}
+.step-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); transition: all .3s;
+}
+.step-dot.active { background: var(--green); width: 24px; border-radius: 4px; }
+.step-dot.done { background: var(--green-dim); }
+
+/* STEP PANELS */
+.step-panel { display: none; }
+.step-panel.active { display: flex; flex-direction: column; }
+
+/* SUCCESS */
+.success-screen {
+  display: none; text-align: center; padding: 40px 24px;
+  flex-direction: column; align-items: center;
+}
+.success-screen.active { display: flex; }
+.success-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--green-glow); border: 2px solid var(--green-border);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px; font-size: 32px;
+}
+.success-title { font-family: 'Bebas Neue', sans-serif; font-size: 44px; letter-spacing: .02em; color: var(--text); margin-bottom: 6px; }
+.success-handle { font-family: 'DM Mono', monospace; font-size: 18px; color: var(--green); margin-bottom: 8px; }
+.success-sub { font-size: 14px; color: var(--muted); line-height: 1.6; max-width: 300px; margin-bottom: 28px; }
+
+/* TERMS */
+.auth-terms { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
+.auth-terms a { color: var(--green); text-decoration: none; }
+
+/* TRANSITION */
+.step-panel { animation: stepIn .3s ease both; }
+@keyframes stepIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+</style>
+</head>
+<body>
+
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<div class="auth-wrap">
+
+  <!-- LOGO -->
+  <div class="auth-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="3"/><path d="M12 9v12"/></svg>
+    </div>
+    <div class="logo-text">Stroke<span>Stack</span></div>
+  </div>
+
+  <!-- HERO -->
+  <div class="auth-hero" id="auth-hero">
+    <div class="auth-hero-step" id="hero-step-label">
+      <div class="step-pip"></div>
+      Create your account
+    </div>
+    <div class="auth-title">Your game.<br>Your <span class="accent">crew.</span></div>
+    <div class="auth-sub">Track bets, talk trash, and watch your buddies play — all in one place.</div>
+  </div>
+
+  <!-- MODE TOGGLE -->
+  <div class="mode-toggle" id="mode-toggle">
+    <button class="mode-btn active" onclick="setMode('signup')">Create account</button>
+    <button class="mode-btn" onclick="setMode('login')">Sign in</button>
+  </div>
+
+  <!-- STEP INDICATORS -->
+  <div class="step-indicator" id="step-indicator" style="margin-top:20px;">
+    <div class="step-dot active" id="dot-1"></div>
+    <div class="step-dot" id="dot-2"></div>
+    <div class="step-dot" id="dot-3"></div>
+  </div>
+
+  <!-- ── SIGNUP FLOW ── -->
+  <div id="signup-flow">
+
+    <!-- STEP 1: Email + Password -->
+    <div class="step-panel active" id="step-1">
+      <div class="auth-form">
+
+        <div class="social-btn" onclick="socialAuth('google')">
+          <span class="social-icon">🔍</span> Continue with Google
+        </div>
+        <div class="social-btn" onclick="socialAuth('apple')">
+          <span class="social-icon">🍎</span> Continue with Apple
+        </div>
+
+        <div class="auth-divider">or use email</div>
+
+        <div class="field-group">
+          <label class="field-label">Email address</label>
+          <div class="field-input-wrap">
+            <input class="field-input" type="email" id="email-input"
+              placeholder="you@email.com"
+              oninput="validateEmail(this)">
+          </div>
+          <div class="field-hint" id="email-hint"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <div class="field-input-wrap">
+            <input class="field-input" type="password" id="password-input"
+              placeholder="8+ characters"
+              oninput="validatePassword(this)">
+            <div class="field-suffix" onclick="togglePw('password-input')">
+              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+          </div>
+          <div class="field-hint" id="pw-hint"></div>
+        </div>
+
+        <button class="submit-btn" id="step1-btn" onclick="goToStep(2)" disabled>
+          Continue →
+        </button>
+
+        <div class="auth-terms">
+          By continuing you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Username + Handicap -->
+    <div class="step-panel" id="step-2">
+      <div class="auth-form">
+
+        <div class="field-group">
+          <label class="field-label">Choose your username</label>
+          <div class="field-input-wrap">
+            <span class="field-prefix">@</span>
+            <input class="field-input with-prefix" type="text" id="username-input"
+              placeholder="yourusername"
+              maxlength="20"
+              oninput="checkUsername(this)">
+          </div>
+          <div class="username-status" id="username-status"></div>
+          <div class="field-hint">Letters, numbers, and underscores only · max 20 chars</div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Your name</label>
+          <input class="field-input" type="text" id="fullname-input"
+            placeholder="First Last"
+            oninput="updatePreview();checkStep2()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Handicap index</label>
+          <div class="hcp-grid" id="hcp-grid"></div>
+          <div class="field-hint">Or enter manually: <input type="number" id="hcp-manual"
+            style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;width:60px;outline:none;margin-left:4px;"
+            placeholder="14.2" min="0" max="54" step="0.1" oninput="setHcp(this.value);checkStep2()"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Home course (optional)</label>
+          <input class="field-input" type="text" id="home-course-input"
+            placeholder="e.g. Cape Coral Golf Club">
+        </div>
+
+        <button class="submit-btn" id="step2-btn" onclick="goToStep(3)" disabled>
+          Continue →
+        </button>
+        <button style="background:none;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-align:center;padding:4px;" onclick="goToStep(1)">← Back</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Avatar + Profile -->
+    <div class="step-panel" id="step-3">
+      <div class="auth-form">
+
+        <div class="avatar-section">
+          <label class="field-label">Your profile</label>
+          <div class="avatar-preview" id="avatar-preview">
+            <div class="avatar-circle" id="avatar-circle" style="background:rgba(45,204,126,0.15);color:var(--green);">
+              <span id="avatar-initials">?</span>
+            </div>
+            <div class="avatar-info">
+              <div class="avatar-name" id="preview-name">Your name</div>
+              <div class="avatar-handle" id="preview-handle">@username</div>
+            </div>
+          </div>
+          <div class="color-picker" id="color-picker"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Bio (optional)</label>
+          <textarea class="field-input" id="bio-input"
+            placeholder="Weekend warrior. 12 handicap. Always looking for action at the 19th."
+            rows="3"
+            style="resize:none;min-height:80px;line-height:1.5;"
+            maxlength="140"></textarea>
+          <div class="field-hint" id="bio-count">0 / 140</div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Notify me when</label>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" checked id="notif-rounds"
+                style="accent-color:var(--green);width:16px;height:16px;">
+              <span style="font-size:13px;color:var(--muted);">Friends start a round near me</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" checked id="notif-settle"
+                style="accent-color:var(--green);width:16px;height:16px;">
+              <span style="font-size:13px;color:var(--muted);">Someone requests payment from me</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" checked id="notif-trash"
+                style="accent-color:var(--green);width:16px;height:16px;">
+              <span style="font-size:13px;color:var(--muted);">Someone mentions me in chat</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="submit-btn" id="step3-btn" onclick="createAccount()">
+          Create my account 🏌️
+        </button>
+        <button style="background:none;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-align:center;padding:4px;" onclick="goToStep(2)">← Back</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── LOGIN FLOW ── -->
+  <div id="login-flow" class="auth-form hidden">
+    <div class="field-group">
+      <label class="field-label">Email or username</label>
+      <input class="field-input" type="text" id="login-email" placeholder="you@email.com or @username">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Password</label>
+      <div class="field-input-wrap">
+        <input class="field-input" type="password" id="login-pw" placeholder="Your password">
+        <div class="field-suffix" onclick="togglePw('login-pw')">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="signIn()">Sign in →</button>
+    <div style="text-align:center;">
+      <button style="background:none;border:none;color:var(--green);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;" onclick="showToast('Password reset email sent')">
+        Forgot password?
+      </button>
+    </div>
+  </div>
+
+  <!-- SUCCESS SCREEN -->
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">⛳</div>
+    <div class="success-title">Welcome to<br>StrokeStack!</div>
+    <div class="success-handle" id="success-handle">@username</div>
+    <div class="success-sub">Your account is ready. Find your crew and start a round.</div>
+    <button class="submit-btn" style="max-width:280px;" onclick="enterApp()">
+      Find friends →
+    </button>
+  </div>
+
+</div>
+
+<div style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:300;pointer-events:none;">
+  <div class="toast" id="toast" style="position:static;transform:none;opacity:0;transition:opacity .3s;"></div>
+</div>
+
+<script>
+// ── STATE ──
+let mode = 'signup';
+let currentStep = 1;
+let usernameTimer = null;
+let selectedHcp = null;
+let selectedColor = { bg: 'rgba(45,204,126,0.15)', text: 'var(--green)', name: 'green' };
+
+const COLORS = [
+  { bg:'rgba(45,204,126,0.15)',  text:'#2dcc7e',  hex:'#2dcc7e',  name:'green'  },
+  { bg:'rgba(96,165,250,0.15)',  text:'#60a5fa',  hex:'#60a5fa',  name:'blue'   },
+  { bg:'rgba(201,168,76,0.15)',  text:'#c9a84c',  hex:'#c9a84c',  name:'gold'   },
+  { bg:'rgba(248,113,113,0.15)', text:'#f87171',  hex:'#f87171',  name:'red'    },
+  { bg:'rgba(167,139,250,0.15)', text:'#a78bfa',  hex:'#a78bfa',  name:'purple' },
+  { bg:'rgba(251,146,60,0.15)',  text:'#fb923c',  hex:'#fb923c',  name:'orange' },
+  { bg:'rgba(34,211,238,0.15)',  text:'#22d3ee',  hex:'#22d3ee',  name:'cyan'   },
+  { bg:'rgba(244,114,182,0.15)', text:'#f472b6',  hex:'#f472b6',  name:'pink'   },
+];
+
+const HCP_OPTIONS = ['0-5','6-10','11-15','16-20','21-25','26-30','31-36','37-45','45-54','Tour'];
+const TAKEN_USERNAMES = ['mikerr','strokestack','admin','jake','golf','tiger','rory','admin'];
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  buildHcpGrid();
+  buildColorPicker();
+  updatePreview();
+});
+
+// ── MODE TOGGLE ──
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&m==='signup')||(i===1&&m==='login'));
+  });
+  document.getElementById('signup-flow').style.display = m === 'signup' ? 'block' : 'none';
+  document.getElementById('login-flow').classList.toggle('hidden', m !== 'login');
+  document.getElementById('step-indicator').style.display = m === 'signup' ? 'flex' : 'none';
+  document.getElementById('hero-step-label').textContent = m === 'signup' ? 'Create your account' : 'Welcome back';
+}
+
+// ── STEP NAVIGATION ──
+function goToStep(n) {
+  document.getElementById(`step-${currentStep}`).classList.remove('active');
+  currentStep = n;
+  document.getElementById(`step-${n}`).classList.add('active');
+  updateStepDots();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateStepDots() {
+  [1,2,3].forEach(i => {
+    const dot = document.getElementById(`dot-${i}`);
+    dot.className = 'step-dot' + (i === currentStep ? ' active' : i < currentStep ? ' done' : '');
+  });
+}
+
+// ── VALIDATION ──
+function validateEmail(input) {
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+  const hint = document.getElementById('email-hint');
+  if (!input.value) { hint.textContent = ''; input.className = 'field-input'; }
+  else if (valid) { hint.textContent = '✓ Looks good'; hint.className = 'field-hint valid'; input.className = 'field-input valid'; }
+  else { hint.textContent = 'Enter a valid email address'; hint.className = 'field-hint invalid'; input.className = 'field-input'; }
+  checkStep1();
+}
+
+function validatePassword(input) {
+  const len = input.value.length;
+  const hint = document.getElementById('pw-hint');
+  if (!input.value) { hint.textContent = ''; input.className = 'field-input'; }
+  else if (len < 8) { hint.textContent = `${8-len} more character${8-len>1?'s':''} needed`; hint.className='field-hint invalid'; input.className='field-input invalid'; }
+  else { hint.textContent = '✓ Strong enough'; hint.className='field-hint valid'; input.className='field-input valid'; }
+  checkStep1();
+}
+
+function checkStep1() {
+  const email = document.getElementById('email-input').value;
+  const pw    = document.getElementById('password-input').value;
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && pw.length >= 8;
+  document.getElementById('step1-btn').disabled = !ok;
+}
+
+function checkUsername(input) {
+  const val = input.value.replace(/[^a-zA-Z0-9_]/g, '');
+  input.value = val.toLowerCase();
+  const status = document.getElementById('username-status');
+  updatePreview();
+
+  if (!val) { status.innerHTML = ''; checkStep2(); return; }
+  if (val.length < 3) {
+    status.innerHTML = `<div class="us-dot" style="background:var(--red)"></div><span style="color:var(--red)">Too short — at least 3 characters</span>`;
+    checkStep2(); return;
+  }
+
+  // Simulate checking availability
+  status.innerHTML = `<div class="us-dot" style="background:var(--muted);animation:pulse .8s ease infinite"></div><span style="color:var(--muted)">Checking…</span>`;
+  clearTimeout(usernameTimer);
+  usernameTimer = setTimeout(() => {
+    const taken = TAKEN_USERNAMES.includes(val.toLowerCase());
+    if (taken) {
+      status.innerHTML = `<div class="us-dot" style="background:var(--red)"></div><span style="color:var(--red)">@${val} is already taken — try @${val}${Math.floor(Math.random()*99)+1}</span>`;
+    } else {
+      status.innerHTML = `<div class="us-dot" style="background:var(--green)"></div><span style="color:var(--green)">@${val} is available ✓</span>`;
+    }
+    checkStep2();
+  }, 600);
+}
+
+function checkStep2() {
+  const username = document.getElementById('username-input').value;
+  const name = document.getElementById('fullname-input').value.trim();
+  const manualHcp = document.getElementById('hcp-manual').value;
+  const statusHtml = document.getElementById('username-status').innerHTML;
+  const statusOk = !statusHtml.includes('taken') && !statusHtml.includes('short') && username.length >= 3;
+  const hcpOk = selectedHcp !== null || manualHcp !== '';
+  const ok = username.length >= 3 && name.length >= 2 && statusOk && hcpOk;
+  document.getElementById('step2-btn').disabled = !ok;
+}
+
+function togglePw(id) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+// ── HCP GRID ──
+function buildHcpGrid() {
+  document.getElementById('hcp-grid').innerHTML = HCP_OPTIONS.map(h =>
+    `<div class="hcp-opt" onclick="selectHcp(this, '${h}')">${h}</div>`
+  ).join('');
+}
+
+function selectHcp(el, val) {
+  document.querySelectorAll('.hcp-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedHcp = val;
+  document.getElementById('hcp-manual').value = '';
+}
+
+function setHcp(val) {
+  selectedHcp = val;
+  document.querySelectorAll('.hcp-opt').forEach(e => e.classList.remove('selected'));
+}
+
+// ── COLOR PICKER ──
+function buildColorPicker() {
+  document.getElementById('color-picker').innerHTML = COLORS.map((c,i) =>
+    `<div class="color-swatch${i===0?' selected':''}"
+      style="background:${c.hex}"
+      onclick="selectColor(this, ${i})"
+      title="${c.name}">
+    </div>`
+  ).join('');
+}
+
+function selectColor(el, idx) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor = COLORS[idx];
+  updatePreview();
+}
+
+function updatePreview() {
+  const name = (document.getElementById('fullname-input')?.value || document.getElementById('preview-name')?.textContent || '').trim();
+  const username = (document.getElementById('username-input')?.value || '').trim();
+  const initials = name ? name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase() : '?';
+
+  const circle = document.getElementById('avatar-circle');
+  if (circle) {
+    circle.style.background = selectedColor.bg;
+    circle.style.color = selectedColor.text;
+    document.getElementById('avatar-initials').textContent = initials;
+  }
+  if (document.getElementById('preview-name')) {
+    document.getElementById('preview-name').textContent = name || 'Your name';
+    document.getElementById('preview-handle').textContent = username ? `@${username}` : '@username';
+  }
+  if (document.getElementById('success-handle')) {
+    document.getElementById('success-handle').textContent = username ? `@${username}` : '@username';
+  }
+}
+
+// ── BIO COUNTER ──
+document.addEventListener('input', e => {
+  if (e.target.id === 'bio-input') {
+    document.getElementById('bio-count').textContent = `${e.target.value.length} / 140`;
+  }
+  if (e.target.id === 'fullname-input') updatePreview();
+});
+
+// ── CREATE ACCOUNT ──
+function createAccount() {
+  const btn = document.getElementById('step3-btn');
+  btn.classList.add('loading');
+  btn.textContent = 'Creating your account…';
+  btn.disabled = true;
+
+  // Simulate API call
+  setTimeout(() => {
+    const profile = {
+      username:   document.getElementById('username-input').value,
+      name:       document.getElementById('fullname-input').value,
+      email:      document.getElementById('email-input').value,
+      hcp:        selectedHcp || document.getElementById('hcp-manual').value || '—',
+      homeCourse: document.getElementById('home-course-input').value,
+      bio:        document.getElementById('bio-input').value,
+      color:      selectedColor,
+      joined:     new Date().toISOString(),
+    };
+    localStorage.setItem('strokestack_profile', JSON.stringify(profile));
+    localStorage.setItem('strokestack_clubs', JSON.stringify([]));
+
+    // Hide all steps, show success
+    document.getElementById('signup-flow').style.display = 'none';
+    document.getElementById('mode-toggle').style.display = 'none';
+    document.getElementById('step-indicator').style.display = 'none';
+    document.getElementById('auth-hero').style.display = 'none';
+
+    document.getElementById('success-handle').textContent = `@${profile.username}`;
+    document.getElementById('success-screen').classList.add('active');
+
+    showToast(`Welcome, @${profile.username}! 🎉`);
+
+    // Auto-redirect to feed after 2.5 seconds
+    setTimeout(() => { window.location.href = 'feed.html'; }, 2500);
+  }, 1800);
+}
+
+function signIn() {
+  const email = document.getElementById('login-email').value;
+  const pw = document.getElementById('login-pw').value;
+  if (!email || !pw) { showToast('Please fill in all fields'); return; }
+
+  showToast('Signing you in…');
+  setTimeout(() => { window.location.href = 'feed.html'; }, 1200);
+}
+
+function socialAuth(provider) {
+  showToast(`${provider === 'google' ? 'Google' : 'Apple'} sign-in coming soon`);
+}
+
+function enterApp() {
+  window.location.href = 'feed.html';
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.opacity = '1';
+  t.style.cssText += ';display:block;background:var(--card2);border:1px solid var(--green-border);color:var(--green);font-size:13px;font-weight:500;padding:9px 20px;border-radius:100px;white-space:nowrap;';
+  setTimeout(() => { t.style.opacity = '0'; }, 2400);
+}
+</script>
+</body>
+</html>

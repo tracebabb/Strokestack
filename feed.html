@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Feed — StrokeStack</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--black:#090c0b;--dark:#0f1512;--card:#141a17;--card2:#1a2320;--green:#2dcc7e;--green-dim:#1a7d4c;--green-glow:rgba(45,204,126,0.12);--green-border:rgba(45,204,126,0.28);--gold:#c9a84c;--gold-glow:rgba(201,168,76,0.1);--gold-border:rgba(201,168,76,0.28);--red:#f87171;--blue:#60a5fa;--text:#edeae2;--muted:#6b7d74;--border:rgba(255,255,255,0.06)}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--text);min-height:100vh;padding-bottom:80px}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.25;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E")}
+.top-nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:56px;background:rgba(9,12,11,.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.05em;color:var(--text);text-decoration:none}
+.nav-logo span{color:var(--green)}
+.nav-right{display:flex;gap:8px;align-items:center}
+.nav-av{width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;transition:all .2s;border:1.5px solid var(--green-border)}
+.nav-icon-btn{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:all .2s;position:relative}
+.nav-icon-btn svg{width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.8}
+.notif-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--green);border:1.5px solid var(--black);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.feed-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--black);position:sticky;top:56px;z-index:99}
+.feed-tab{flex:1;padding:13px 8px;text-align:center;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent}
+.feed-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.compose-wrap{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.compose-av{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500}
+.compose-right{flex:1;display:flex;flex-direction:column;gap:10px}
+.compose-input{width:100%;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--text);resize:none;line-height:1.5;min-height:28px;max-height:160px;scrollbar-width:none;cursor:pointer}
+.compose-input::placeholder{color:var(--muted)}
+.compose-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border)}
+.compose-actions{display:flex;gap:4px}
+.compose-action-btn{width:32px;height:32px;border-radius:8px;border:none;background:none;cursor:pointer;color:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s}
+.compose-action-btn:hover{background:var(--green-glow)}
+.post-btn{padding:7px 18px;border-radius:100px;background:var(--green);color:var(--black);border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.post-btn:disabled{opacity:.4;cursor:not-allowed}
+.post{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;cursor:pointer;transition:background .15s;animation:fadeIn .3s ease both}
+.post:hover{background:rgba(255,255,255,.01)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.post-av{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;cursor:pointer}
+.post-body{flex:1;min-width:0}
+.post-header{display:flex;align-items:baseline;gap:6px;margin-bottom:3px;flex-wrap:wrap}
+.post-name{font-size:14px;font-weight:500;color:var(--text)}
+.post-handle{font-size:13px;color:var(--muted)}
+.post-dot{font-size:10px;color:var(--muted)}
+.post-time{font-size:12px;color:var(--muted)}
+.post-more{margin-left:auto;color:var(--muted);font-size:16px;cursor:pointer;padding:0 4px}
+.post-text{font-size:15px;color:var(--text);line-height:1.55;margin-bottom:10px;word-break:break-word}
+.post-text .mention{color:var(--green);font-weight:500}
+.post-text .hashtag{color:var(--blue)}
+.post-score-embed{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;transition:border-color .2s}
+.post-score-embed:hover{border-color:var(--green-border)}
+.pse-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pse-course{font-size:12px;font-weight:500;color:var(--text)}
+.pse-live{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--green)}
+.pse-live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.4s ease infinite}
+.pse-player-name{font-size:10px;color:var(--muted)}
+.pse-player-score{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.03em;line-height:1}
+.pse-player-score.pos{color:var(--green)}
+.pse-player-score.neg{color:var(--red)}
+.pse-player-score.even{color:var(--muted)}
+.pse-footer{font-size:10px;color:var(--muted);margin-top:8px}
+.post-tag{display:inline-block;font-size:10px;font-weight:500;padding:3px 8px;border-radius:100px;margin-bottom:8px}
+.tag-round{background:var(--green-glow);color:var(--green);border:1px solid var(--green-border)}
+.tag-highlight{background:var(--gold-glow);color:var(--gold);border:1px solid var(--gold-border)}
+.tag-trash{background:rgba(248,113,113,.06);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.tag-tip{background:rgba(96,165,250,.1);color:var(--blue);border:1px solid rgba(96,165,250,.25)}
+.post-actions{display:flex;gap:0;margin-top:4px;margin-left:-8px}
+.post-action{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);cursor:pointer;padding:6px 8px;border-radius:8px;transition:all .15s;background:none;border:none;font-family:'DM Sans',sans-serif}
+.post-action:hover{color:var(--green);background:var(--green-glow)}
+.post-action.liked{color:var(--red)}
+.post-action.liked:hover{color:var(--red);background:rgba(248,113,113,.06)}
+.post-action.liked svg{fill:var(--red);stroke:var(--red)}
+.post-action.reposted{color:var(--green)}
+.post-action svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8}
+.suggest-card{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.suggest-av{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500}
+.suggest-info{flex:1;min-width:0}
+.suggest-name{font-size:14px;font-weight:500;color:var(--text)}
+.suggest-handle{font-size:12px;color:var(--muted)}
+.suggest-bio{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.follow-btn{font-size:12px;font-weight:500;padding:6px 16px;border-radius:100px;border:1px solid var(--green-border);background:none;color:var(--green);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;flex-shrink:0}
+.follow-btn.following{background:var(--green);color:var(--black);border-color:var(--green)}
+.section-header{padding:12px 16px 6px;font-size:16px;font-weight:500;color:var(--text);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.section-header-sub{font-size:12px;color:var(--muted)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;display:flex;background:rgba(9,12,11,.97);backdrop-filter:blur(14px);border-top:1px solid var(--border);height:62px}
+.bottom-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;text-decoration:none;position:relative}
+.bottom-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.bottom-tab svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
+.tab-badge{position:absolute;top:8px;left:calc(50% + 5px);min-width:16px;height:16px;border-radius:8px;background:var(--green);color:var(--black);font-size:9px;font-weight:500;display:flex;align-items:center;justify-content:center;padding:0 3px;border:1.5px solid var(--black)}
+.fab{position:fixed;bottom:76px;right:16px;z-index:99;width:52px;height:52px;border-radius:50%;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(45,204,126,.35);transition:all .2s}
+.fab:hover{transform:scale(1.05) translateY(-2px)}
+.fab svg{width:22px;height:22px;stroke:var(--black);fill:none;stroke-width:2.5}
+.compose-modal{position:fixed;inset:0;z-index:200;background:rgba(9,12,11,.92);backdrop-filter:blur(10px);display:none;flex-direction:column}
+.compose-modal.show{display:flex;animation:slideUp .25s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.compose-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+.compose-modal-title{font-size:15px;font-weight:500;color:var(--text)}
+.compose-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--card2);color:var(--muted);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+.compose-modal-body{flex:1;display:flex;gap:12px;padding:16px;align-items:flex-start;overflow-y:auto}
+.compose-modal-right{flex:1}
+.compose-modal-input{width:100%;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:18px;color:var(--text);resize:none;line-height:1.55;min-height:80px}
+.compose-modal-input::placeholder{color:var(--muted)}
+.compose-type-label{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 6px}
+.compose-type-pills{display:flex;gap:6px;flex-wrap:wrap}
+.type-pill{font-size:11px;font-weight:500;padding:5px 12px;border-radius:100px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif}
+.type-pill.active{color:var(--green);border-color:var(--green-border);background:var(--green-glow)}
+.compose-modal-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.compose-modal-actions{display:flex;gap:4px}
+.cma-btn{width:34px;height:34px;border-radius:8px;border:none;background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--green)}
+.cma-btn:hover{background:var(--green-glow)}
+.post-submit-btn{padding:9px 22px;border-radius:100px;background:var(--green);color:var(--black);border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.post-submit-btn:disabled{opacity:.4;cursor:not-allowed}
+.compose-score-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.csc-left{font-size:12px;color:var(--muted)}
+.csc-score{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green)}
+.csc-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px}
+.load-more{padding:16px;text-align:center;font-size:13px;color:var(--green);cursor:pointer;border-bottom:1px solid var(--border)}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--card2);border:1px solid var(--green-border);color:var(--green);font-size:13px;font-weight:500;padding:9px 20px;border-radius:100px;z-index:400;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="top-nav">
+  <a href="index.html" class="nav-logo">Stroke<span>Stack</span></a>
+  <div class="nav-right">
+    <div class="nav-icon-btn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+    <div class="nav-icon-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+    <div class="nav-av" id="nav-avatar" style="background:rgba(45,204,126,.15);color:#2dcc7e;" onclick="window.location.href='profile.html'">MR</div>
+  </div>
+</div>
+
+<div class="feed-tabs">
+  <div class="feed-tab active" onclick="switchFeedTab('following',this)">Following</div>
+  <div class="feed-tab" onclick="switchFeedTab('discover',this)">Discover</div>
+  <div class="feed-tab" onclick="switchFeedTab('live',this)">🔴 Live</div>
+</div>
+
+<div class="compose-wrap" id="compose-inline">
+  <div class="compose-av" id="compose-av" style="background:rgba(45,204,126,.15);color:#2dcc7e;">MR</div>
+  <div class="compose-right">
+    <textarea class="compose-input" id="compose-input-inline" placeholder="What happened on the course today?" rows="1" onclick="openComposeModal()" readonly></textarea>
+    <div class="compose-bottom">
+      <div class="compose-actions">
+        <button class="compose-action-btn" onclick="openComposeModal('score')">⛳</button>
+        <button class="compose-action-btn" onclick="openComposeModal()">🔥</button>
+      </div>
+      <button class="post-btn" disabled onclick="openComposeModal()">Post</button>
+    </div>
+  </div>
+</div>
+
+<div id="feed-content"></div>
+<div class="load-more" onclick="showToast('Loading more…')">Load more posts</div>
+
+<button class="fab" onclick="openComposeModal()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+
+<nav class="bottom-nav">
+  <a href="feed.html" class="bottom-tab active"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Feed<div class="tab-badge">3</div></a>
+  <a href="setup-round.html" class="bottom-tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Round</a>
+  <a href="scorecard.html" class="bottom-tab"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Live</a>
+  <a href="find-friends.html" class="bottom-tab"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Friends</a>
+  <a href="profile.html" class="bottom-tab"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Bag</a>
+</nav>
+
+<!-- COMPOSE MODAL -->
+<div class="compose-modal" id="compose-modal">
+  <div class="compose-modal-header">
+    <div class="compose-modal-title">New post</div>
+    <button class="compose-close" onclick="closeComposeModal()">✕</button>
+  </div>
+  <div class="compose-modal-body">
+    <div class="compose-av" id="compose-av-modal" style="background:rgba(45,204,126,.15);color:#2dcc7e;">MR</div>
+    <div class="compose-modal-right">
+      <textarea class="compose-modal-input" id="compose-modal-input" placeholder="What happened on the course today?" oninput="updateComposeModal()"></textarea>
+      <div id="compose-score-attach" style="display:none;">
+        <div class="compose-score-card">
+          <div class="csc-left"><div style="font-size:12px;font-weight:500;color:var(--text)">Cape Coral GC · Hole 9</div><div style="font-size:11px;color:var(--muted)">Live round attached</div></div>
+          <div class="csc-score">-1</div>
+          <button class="csc-remove" onclick="removeScoreAttach()">✕</button>
+        </div>
+      </div>
+      <div class="compose-type-label">Tag this post</div>
+      <div class="compose-type-pills" id="type-pills"></div>
+    </div>
+  </div>
+  <div class="compose-modal-footer">
+    <div class="compose-modal-actions">
+      <button class="cma-btn" onclick="attachScore()">⛳</button>
+      <button class="cma-btn">📷</button>
+      <button class="cma-btn" onclick="insertMention()">@</button>
+    </div>
+    <button class="post-submit-btn" id="post-submit-btn" onclick="submitPost()" disabled>Post</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const AV={av0:{bg:'rgba(45,204,126,.15)',col:'#2dcc7e'},av1:{bg:'rgba(96,165,250,.15)',col:'#60a5fa'},av2:{bg:'rgba(201,168,76,.15)',col:'#c9a84c'},av3:{bg:'rgba(248,113,113,.15)',col:'#f87171'},av4:{bg:'rgba(167,139,250,.15)',col:'#a78bfa'},av5:{bg:'rgba(251,146,60,.15)',col:'#fb923c'},av6:{bg:'rgba(34,211,238,.15)',col:'#22d3ee'}};
+const POST_TYPES=[{id:'round',label:'⛳ Round update'},{id:'highlight',label:'🏆 Highlight'},{id:'trash',label:'🔥 Trash talk'},{id:'tip',label:'💡 Golf tip'},{id:'question',label:'❓ Question'}];
+let selectedType=null,scoreAttached=false,currentFeedTab='following',followState={};
+let ME={};try{ME=JSON.parse(localStorage.getItem('strokestack_profile')||'{}')}catch(e){}
+if(!ME.username)ME={username:'mikerr',name:'Mike R.',color:{bg:'rgba(45,204,126,.15)',text:'#2dcc7e'}};
+const initials=(ME.name||'MR').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+['nav-avatar','compose-av','compose-av-modal'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=initials;el.style.background=ME.color?.bg||'rgba(45,204,126,.15)';el.style.color=ME.color?.text||'#2dcc7e'}});
+
+const POSTS=[
+  {id:1,av:'av1',name:'Jake T.',handle:'@jaket',time:'8m',text:'Just birdied 11 at Coral Oaks 🐦 That 7-iron from 145 was absolutely flushed. @mikerr your skin is gone buddy',type:'highlight',score:{course:'Coral Oaks GC',hole:11,score:'-2',live:true},likes:12,comments:3,reposts:2,liked:false,reposted:false},
+  {id:2,av:'av3',name:'Chris L.',handle:'@chrisl22',time:'22m',text:'Three putts on a par 3. I need therapy. #golfhumbles #sendhelp',type:'trash',score:null,likes:28,comments:7,reposts:5,liked:true,reposted:false},
+  {id:3,av:'av2',name:'Dan S.',handle:'@dansmith_golf',time:'34m',text:"Front 9 at Cape Coral in the books. +4 but I had a chip-in on 7 so I'm calling it a moral victory 🙃",type:'round',score:{course:'Cape Coral GC',hole:9,score:'+4',live:false},likes:6,comments:2,reposts:0,liked:false,reposted:false},
+  {id:4,av:'av4',name:'Rob M.',handle:'@robmgolf',time:'2h',text:'💡 Golf tip: On a downhill putt, aim for a spot 18 inches past the hole instead of the hole itself. Let the slope do the work. Game changer.',type:'tip',score:null,likes:41,comments:9,reposts:14,liked:false,reposted:false},
+  {id:5,av:'av5',name:'Tony B.',handle:'@tonybgolf',time:'3h',text:'@robmgolf chip-in eagle on 14 at Palmetto-Pine today. I have been waiting 3 years to do that. Nobody can tell me anything right now 🦅',type:'highlight',score:null,likes:67,comments:15,reposts:8,liked:true,reposted:false},
+  {id:6,av:'av6',name:'Steve K.',handle:'@stevek_golflife',time:'5h',text:'TPC Sawgrass bucket list check ✅ Island green 17 — made par. I will never stop talking about this.',type:'highlight',score:{course:'TPC Sawgrass',hole:18,score:'Net 82',live:false},likes:89,comments:22,reposts:11,liked:false,reposted:false},
+];
+const SUGGESTED=[
+  {av:'av0',name:'Phil M.',handle:'@philmgolf',bio:'HCP 4 · Cape Coral CC · Always looking for action'},
+  {av:'av4',name:'Kevin D.',handle:'@kevind_golf',bio:'HCP 11 · Coral Oaks regular · Wolf game specialist'},
+  {av:'av5',name:'Mike T.',handle:'@miket_links',bio:'HCP 18 · Weekend warrior · Skins or bust'},
+];
+const TAG_CLS={round:'tag-round',highlight:'tag-highlight',trash:'tag-trash',tip:'tag-tip'};
+const TAG_LBL={round:'⛳ Round',highlight:'🏆 Highlight',trash:'🔥 Trash talk',tip:'💡 Tip',question:'❓'};
+
+window.addEventListener('DOMContentLoaded',()=>{buildTypePills();buildFeed()});
+
+function buildTypePills(){document.getElementById('type-pills').innerHTML=POST_TYPES.map(t=>`<button class="type-pill${t.id===selectedType?' active':''}" onclick="selectType('${t.id}',this)">${t.label}</button>`).join('')}
+function selectType(id,el){selectedType=id;document.querySelectorAll('.type-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active')}
+function switchFeedTab(tab,el){currentFeedTab=tab;document.querySelectorAll('.feed-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.getElementById('compose-inline').style.display=tab==='following'?'flex':'none';buildFeed()}
+
+function buildFeed(){
+  const container=document.getElementById('feed-content');
+  let html='';
+  if(currentFeedTab==='following'){html=POSTS.map((p,i)=>renderPost(p,i)).join('')}
+  else if(currentFeedTab==='discover'){
+    html=`<div class="section-header">People you may know<span class="section-header-sub">Based on your location</span></div>`;
+    html+=SUGGESTED.map(s=>renderSuggest(s)).join('');
+    html+=`<div class="section-header">Trending this week<span class="section-header-sub"></span></div>`;
+    html+=[...POSTS].sort((a,b)=>b.likes-a.likes).map((p,i)=>renderPost(p,i)).join('');
+  } else {
+    const live=POSTS.filter(p=>p.score?.live);
+    html=live.length?live.map((p,i)=>renderPost(p,i)).join(''):`<div style="padding:40px 20px;text-align:center;color:var(--muted);font-size:14px;">No live rounds right now.<br><br><button onclick="showToast('Finding rounds…')" style="background:var(--green-glow);border:1px solid var(--green-border);color:var(--green);padding:8px 20px;border-radius:100px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;margin-top:12px">Find live rounds near me</button></div>`;
+  }
+  container.innerHTML=html;
+}
+
+function renderPost(p,idx){
+  const av=AV[p.av];
+  const scoreEmbed=p.score?`<div class="post-score-embed" onclick="event.stopPropagation()"><div class="pse-header"><div class="pse-course">${p.score.course}</div>${p.score.live?'<div class="pse-live"><div class="pse-live-dot"></div> Live · H'+p.score.hole+'</div>':'<div style="font-size:10px;color:var(--muted)">Finished</div>'}</div><div><div class="pse-player-name">${p.name.split(' ')[0]}</div><div class="pse-player-score ${p.score.score.startsWith('-')?'pos':p.score.score.startsWith('+')?'neg':'even'}">${p.score.score}</div></div><div class="pse-footer">${p.score.live?'Tap to watch live →':'Round complete'}</div></div>`:'';
+  const txt=p.text.replace(/@[\w]+/g,m=>`<span class="mention">${m}</span>`).replace(/#[\w]+/g,m=>`<span class="hashtag" style="color:var(--blue)">${m}</span>`);
+  return `<div class="post" style="animation-delay:${idx*.04}s">
+    <div class="post-av" style="background:${av.bg};color:${av.col}">${p.handle.replace('@','').substring(0,2).toUpperCase()}</div>
+    <div class="post-body">
+      <div class="post-header"><span class="post-name">${p.name}</span><span class="post-handle">${p.handle}</span><span class="post-dot">·</span><span class="post-time">${p.time}</span><span class="post-more">···</span></div>
+      <div class="post-text">${txt}</div>
+      ${scoreEmbed}
+      ${p.type?`<span class="post-tag ${TAG_CLS[p.type]||''}">${TAG_LBL[p.type]||p.type}</span>`:''}
+      <div class="post-actions">
+        <button class="post-action${p.liked?' liked':''}" onclick="toggleLike(${p.id},this)">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span id="likes-${p.id}">${p.likes}</span>
+        </button>
+        <button class="post-action" onclick="showToast('Reply coming soon')">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>${p.comments}</span>
+        </button>
+        <button class="post-action${p.reposted?' reposted':''}" onclick="doRepost(${p.id},this)">
+          <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          <span id="rp-${p.id}">${p.reposts}</span>
+        </button>
+        <button class="post-action" onclick="showToast('Shared!')">
+          <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderSuggest(s){
+  const av=AV[s.av];const isF=followState[s.handle];
+  return `<div class="suggest-card"><div class="suggest-av" style="background:${av.bg};color:${av.col}">${s.handle.replace('@','').substring(0,2).toUpperCase()}</div><div class="suggest-info"><div class="suggest-name">${s.name}</div><div class="suggest-handle">${s.handle}</div><div class="suggest-bio">${s.bio}</div></div><button class="follow-btn${isF?' following':''}" onclick="toggleFollow('${s.handle}',this)">${isF?'Following':'Follow'}</button></div>`;
+}
+
+function toggleLike(id,btn){const p=POSTS.find(x=>x.id===id);if(!p)return;p.liked=!p.liked;p.likes+=p.liked?1:-1;btn.classList.toggle('liked',p.liked);document.getElementById('likes-'+id).textContent=p.likes}
+function doRepost(id,btn){const p=POSTS.find(x=>x.id===id);if(!p)return;p.reposted=!p.reposted;p.reposts+=p.reposted?1:-1;btn.classList.toggle('reposted',p.reposted);document.getElementById('rp-'+id).textContent=p.reposts;showToast(p.reposted?'Reposted ✓':'Repost removed')}
+function toggleFollow(handle,btn){followState[handle]=!followState[handle];btn.textContent=followState[handle]?'Following':'Follow';btn.classList.toggle('following',followState[handle]);showToast(followState[handle]?'Following '+handle+' ✓':'Unfollowed '+handle)}
+
+function openComposeModal(type){document.getElementById('compose-modal').classList.add('show');document.getElementById('compose-modal-input').focus();if(type==='score')attachScore();document.body.style.overflow='hidden'}
+function closeComposeModal(){document.getElementById('compose-modal').classList.remove('show');document.body.style.overflow=''}
+function updateComposeModal(){const v=document.getElementById('compose-modal-input').value;document.getElementById('post-submit-btn').disabled=v.trim().length===0}
+function attachScore(){scoreAttached=true;document.getElementById('compose-score-attach').style.display='block'}
+function removeScoreAttach(){scoreAttached=false;document.getElementById('compose-score-attach').style.display='none'}
+function insertMention(){const i=document.getElementById('compose-modal-input');i.value+='@';i.focus();updateComposeModal()}
+
+function submitPost(){
+  const text=document.getElementById('compose-modal-input').value.trim();
+  if(!text)return;
+  POSTS.unshift({id:Date.now(),av:'av0',name:ME.name||'Mike R.',handle:'@'+(ME.username||'mikerr'),time:'now',text,type:selectedType||'round',score:scoreAttached?{course:'Cape Coral GC',hole:9,score:'-1',live:true}:null,likes:0,comments:0,reposts:0,liked:false,reposted:false});
+  closeComposeModal();
+  document.getElementById('compose-modal-input').value='';
+  selectedType=null;scoreAttached=false;
+  buildTypePills();buildFeed();
+  showToast('Posted! 🏌️');
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+</script>
+</body>
+</html>

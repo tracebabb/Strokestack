@@ -1,0 +1,46 @@
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://maps.googleapis.com https://maps.gstatic.com https://api.golfcourseapi.com https://fonts.googleapis.com https://fonts.gstatic.com data: blob:; img-src 'self' data: blob: https:; connect-src 'self' https:;"
+
+[[redirects]]
+  from = "/scorecard"
+  to = "/scorecard.html"
+  status = 200
+
+[[redirects]]
+  from = "/setup-round"
+  to = "/setup-round.html"
+  status = 200
+
+[[redirects]]
+  from = "/feed"
+  to = "/feed.html"
+  status = 200
+
+[[redirects]]
+  from = "/signup"
+  to = "/signup.html"
+  status = 200
+
+[[redirects]]
+  from = "/settlement"
+  to = "/settlement.html"
+  status = 200
+
+[[redirects]]
+  from = "/profile"
+  to = "/profile.html"
+  status = 200
+
+[[redirects]]
+  from = "/chat"
+  to = "/chat.html"
+  status = 200
+
+[[redirects]]
+  from = "/find-friends"
+  to = "/find-friends.html"
+  status = 200

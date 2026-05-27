@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Find Friends — StrokeStack</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#090c0b;--dark:#0f1512;--card:#141a17;--card2:#1a2320;
+  --green:#2dcc7e;--green-dim:#1a7d4c;--green-glow:rgba(45,204,126,0.12);--green-border:rgba(45,204,126,0.28);
+  --gold:#c9a84c;--gold-glow:rgba(201,168,76,0.1);--gold-border:rgba(201,168,76,0.28);
+  --red:#f87171;--blue:#60a5fa;--text:#edeae2;--muted:#6b7d74;--border:rgba(255,255,255,0.06);
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--text);min-height:100vh;padding-bottom:90px}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.28;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E")}
+
+/* NAV */
+.top-nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;padding:0 16px;height:56px;background:rgba(9,12,11,.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.back-btn{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--card2);border:1px solid var(--border);cursor:pointer;transition:all .2s;flex-shrink:0;color:var(--muted);text-decoration:none}
+.back-btn:hover{border-color:var(--green-border);color:var(--green)}
+.back-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.nav-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;color:var(--text)}
+.nav-title span{color:var(--green)}
+.nav-right{margin-left:auto;display:flex;gap:8px}
+.nav-requests-btn{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--muted);background:var(--card2);border:1px solid var(--border);padding:6px 12px;border-radius:8px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;position:relative}
+.nav-requests-btn:hover{border-color:var(--green-border);color:var(--green)}
+.req-badge{background:var(--green);color:var(--black);font-size:10px;font-weight:500;padding:1px 5px;border-radius:100px;min-width:16px;text-align:center}
+
+/* SEARCH BAR */
+.search-section{padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:90;background:rgba(9,12,11,.97);backdrop-filter:blur(14px)}
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none}
+.search-icon svg{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2}
+.search-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px 12px 42px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);outline:none;transition:all .2s}
+.search-input::placeholder{color:var(--muted)}
+.search-input:focus{border-color:var(--green-border);background:var(--card2)}
+.search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:var(--card2);border:none;color:var(--muted);cursor:pointer;width:22px;height:22px;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.search-clear.show{display:flex}
+.search-clear:hover{color:var(--text)}
+
+/* TABS */
+.section-tabs{display:flex;padding:0 16px;gap:6px;margin:14px 0 0;overflow-x:auto;scrollbar-width:none}
+.section-tabs::-webkit-scrollbar{display:none}
+.stab{flex-shrink:0;font-size:12px;font-weight:500;padding:6px 14px;border-radius:100px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif}
+.stab.active{background:var(--green-glow);border-color:var(--green-border);color:var(--green)}
+
+/* SECTION LABELS */
+.section-label{padding:16px 16px 8px;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between}
+.section-label-action{font-size:11px;color:var(--green);cursor:pointer;letter-spacing:normal;text-transform:none;font-weight:400}
+
+/* SEARCH RESULTS LIVE */
+.search-results{background:var(--card);border:1px solid var(--border);border-radius:12px;margin:10px 16px 0;overflow:hidden;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.search-results.show{display:block}
+.search-result-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.search-result-row:last-child{border-bottom:none}
+.search-result-row:hover{background:var(--card2)}
+.srr-av{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500}
+.srr-info{flex:1;min-width:0}
+.srr-name{font-size:14px;font-weight:500;color:var(--text)}
+.srr-handle{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.srr-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.srr-follow{flex-shrink:0}
+
+/* FRIEND CARDS — FULL */
+.friend-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);animation:fadeUp .35s ease both;transition:background .15s}
+.friend-card:hover{background:rgba(255,255,255,.01)}
+.fc-av{width:48px;height:48px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.fc-av:hover{opacity:.8}
+.fc-body{flex:1;min-width:0}
+.fc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px}
+.fc-name{font-size:15px;font-weight:500;color:var(--text);cursor:pointer}
+.fc-name:hover{color:var(--green)}
+.fc-handle{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.fc-bio{font-size:13px;color:var(--muted);line-height:1.5;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fc-stats{display:flex;gap:14px;margin-top:8px}
+.fc-stat{font-size:12px;color:var(--muted)}
+.fc-stat strong{color:var(--text);font-weight:500}
+.fc-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.fc-tag{font-size:10px;font-weight:500;padding:3px 8px;border-radius:100px;background:var(--card2);border:1px solid var(--border);color:var(--muted)}
+.fc-tag.live{background:var(--green-glow);border-color:var(--green-border);color:var(--green)}
+.fc-tag.mutual{background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.25);color:var(--blue)}
+.fc-mutual{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--muted)}
+.fc-mutual-avs{display:flex}
+.fc-mutual-av{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--black);margin-left:-4px;font-size:6px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.fc-mutual-av:first-child{margin-left:0}
+
+/* FOLLOW BUTTON */
+.follow-btn{font-size:12px;font-weight:500;padding:7px 18px;border-radius:100px;border:1px solid var(--green-border);background:none;color:var(--green);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;flex-shrink:0;white-space:nowrap}
+.follow-btn:hover{background:var(--green-glow)}
+.follow-btn.following{background:var(--card2);color:var(--muted);border-color:var(--border)}
+.follow-btn.following:hover{border-color:var(--red);color:var(--red)}
+.follow-btn.pending{background:var(--card2);color:var(--muted);border-color:var(--border);cursor:default}
+.follow-btn.follow-back{background:var(--green);color:var(--black);border-color:var(--green)}
+.follow-btn.follow-back:hover{background:#3ddc8e}
+
+/* REQUEST CARDS */
+.request-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);animation:fadeUp .3s ease both}
+.rc-av{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500}
+.rc-info{flex:1;min-width:0}
+.rc-name{font-size:14px;font-weight:500;color:var(--text)}
+.rc-handle{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.rc-mutual{font-size:11px;color:var(--muted);margin-top:2px}
+.rc-actions{display:flex;gap:6px;flex-shrink:0}
+.rc-accept{padding:7px 14px;border-radius:100px;background:var(--green);color:var(--black);border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s}
+.rc-accept:hover{background:#3ddc8e}
+.rc-decline{padding:7px 14px;border-radius:100px;background:var(--card2);color:var(--muted);border:1px solid var(--border);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s}
+.rc-decline:hover{border-color:var(--red);color:var(--red)}
+
+/* NEARBY CARD — compact */
+.nearby-strip{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;scrollbar-width:none}
+.nearby-strip::-webkit-scrollbar{display:none}
+.nearby-card{flex-shrink:0;width:130px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px;text-align:center;cursor:pointer;transition:all .2s;animation:fadeUp .35s ease both}
+.nearby-card:hover{border-color:var(--green-border);transform:translateY(-2px)}
+.nearby-av{width:44px;height:44px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500}
+.nearby-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nearby-handle{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nearby-dist{font-size:10px;color:var(--green);margin-bottom:8px}
+.nearby-hcp{font-size:10px;color:var(--muted)}
+.nearby-follow{width:100%;padding:6px;border-radius:8px;background:var(--green-glow);border:1px solid var(--green-border);color:var(--green);font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.nearby-follow:hover{background:var(--green);color:var(--black)}
+.nearby-follow.following{background:var(--card2);color:var(--muted);border-color:var(--border)}
+
+/* INVITE SECTION */
+.invite-section{margin:16px;background:var(--card);border:1px solid var(--green-border);border-radius:14px;padding:18px;background:linear-gradient(135deg,var(--card) 60%,rgba(45,204,126,.04) 100%)}
+.invite-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
+.invite-sub{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+.invite-actions{display:flex;gap:8px;flex-wrap:wrap}
+.invite-btn{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:8px 14px;border-radius:8px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;border:none}
+.ib-green{background:var(--green);color:var(--black)}
+.ib-green:hover{background:#3ddc8e}
+.ib-ghost{background:var(--card2);color:var(--muted);border:1px solid var(--border)!important}
+.ib-ghost:hover{color:var(--text);border-color:rgba(255,255,255,.12)!important}
+.invite-link-row{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-top:10px;cursor:pointer;transition:border-color .2s}
+.invite-link-row:hover{border-color:var(--green-border)}
+.invite-link-url{font-size:12px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'DM Mono',monospace}
+.invite-link-copy{font-size:11px;color:var(--green);font-weight:500;flex-shrink:0}
+
+/* FOLLOWING LIST */
+.following-card{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);animation:fadeUp .3s ease both;cursor:pointer;transition:background .15s}
+.following-card:hover{background:rgba(255,255,255,.01)}
+.fwc-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500}
+.fwc-info{}
+.fwc-name{font-size:14px;font-weight:500;color:var(--text)}
+.fwc-detail{font-size:11px;color:var(--muted);margin-top:1px}
+.fwc-live{color:var(--green);font-weight:500}
+
+/* EMPTY STATE */
+.empty-state{padding:48px 24px;text-align:center}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.03em;color:var(--text);margin-bottom:6px}
+.empty-sub{font-size:14px;color:var(--muted);line-height:1.6;max-width:280px;margin:0 auto}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;display:flex;background:rgba(9,12,11,.97);backdrop-filter:blur(14px);border-top:1px solid var(--border);height:62px}
+.bottom-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;text-decoration:none;position:relative}
+.bottom-tab.active{color:var(--green);border-bottom-color:var(--green)}
+.bottom-tab svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
+
+/* PROFILE MODAL */
+.profile-modal{position:fixed;inset:0;z-index:200;display:none;align-items:flex-end;justify-content:center;background:rgba(9,12,11,.88);backdrop-filter:blur(8px)}
+.profile-modal.show{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.profile-sheet{background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:0 0 40px;width:100%;max-width:520px;animation:sheetUp .25s ease}
+@keyframes sheetUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.ps-handle-bar{width:36px;height:3px;background:var(--border);border-radius:2px;margin:12px auto 0}
+.ps-header{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px}
+.ps-av{width:64px;height:64px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500}
+.ps-info{flex:1}
+.ps-name{font-size:18px;font-weight:500;color:var(--text);margin-bottom:2px}
+.ps-handle{font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px}
+.ps-bio{font-size:13px;color:var(--muted);line-height:1.5}
+.ps-stats-row{display:flex;gap:20px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.ps-stat{text-align:center}
+.ps-stat-val{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.03em;color:var(--text)}
+.ps-stat-label{font-size:10px;color:var(--muted);margin-top:1px}
+.ps-recent{padding:14px 20px}
+.ps-recent-label{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.ps-round-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.ps-round-row:last-child{border-bottom:none}
+.ps-round-course{color:var(--muted)}
+.ps-round-score{font-weight:500;color:var(--text)}
+.ps-actions{display:flex;gap:8px;padding:16px 20px 0}
+.ps-follow-btn{flex:1;padding:12px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;border:none}
+.ps-follow-green{background:var(--green);color:var(--black)}
+.ps-follow-green:hover{background:#3ddc8e}
+.ps-follow-ghost{background:var(--card2);color:var(--muted);border:1px solid var(--border)!important}
+.ps-follow-ghost:hover{color:var(--text)}
+.ps-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:var(--card2);border:none;color:var(--muted);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+
+/* TOAST */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--card2);border:1px solid var(--green-border);color:var(--green);font-size:13px;font-weight:500;padding:9px 20px;border-radius:100px;z-index:300;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="top-nav">
+  <a href="feed.html" class="back-btn">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </a>
+  <div class="nav-title">Find <span>Friends</span></div>
+  <div class="nav-right">
+    <button class="nav-requests-btn" onclick="showTab('requests')">
+      Requests <span class="req-badge" id="req-badge">2</span>
+    </button>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div class="search-section">
+  <div class="search-wrap">
+    <div class="search-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+    <input class="search-input" id="search-input" type="text"
+      placeholder="Search by name or @username"
+      oninput="handleSearch(this.value)">
+    <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+  </div>
+  <div class="search-results" id="search-results"></div>
+</div>
+
+<!-- TABS -->
+<div class="section-tabs" id="section-tabs">
+  <div class="stab active" onclick="showTab('suggested')">Suggested</div>
+  <div class="stab" onclick="showTab('nearby')">📍 Nearby</div>
+  <div class="stab" onclick="showTab('following')">Following</div>
+  <div class="stab" onclick="showTab('followers')">Followers</div>
+  <div class="stab" onclick="showTab('requests')">Requests <span id="req-count" style="background:var(--green);color:var(--black);font-size:9px;padding:1px 5px;border-radius:100px;margin-left:2px;">2</span></div>
+</div>
+
+<!-- CONTENT -->
+<div id="tab-content"></div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <a href="feed.html" class="bottom-tab"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Feed</a>
+  <a href="setup-round.html" class="bottom-tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Round</a>
+  <a href="scorecard.html" class="bottom-tab"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Live</a>
+  <a href="find-friends.html" class="bottom-tab active"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Friends</a>
+  <a href="profile.html" class="bottom-tab"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Bag</a>
+</nav>
+
+<!-- PROFILE MODAL -->
+<div class="profile-modal" id="profile-modal" onclick="closeProfile(event)">
+  <div class="profile-sheet" style="position:relative">
+    <div class="ps-handle-bar"></div>
+    <button class="ps-close" onclick="closeProfileSheet()">✕</button>
+    <div class="ps-header">
+      <div class="ps-av" id="ps-av"></div>
+      <div class="ps-info">
+        <div class="ps-name" id="ps-name"></div>
+        <div class="ps-handle" id="ps-handle"></div>
+        <div class="ps-bio" id="ps-bio"></div>
+      </div>
+    </div>
+    <div class="ps-stats-row">
+      <div class="ps-stat"><div class="ps-stat-val" id="ps-rounds">0</div><div class="ps-stat-label">Rounds</div></div>
+      <div class="ps-stat"><div class="ps-stat-val" id="ps-following">0</div><div class="ps-stat-label">Following</div></div>
+      <div class="ps-stat"><div class="ps-stat-val" id="ps-followers">0</div><div class="ps-stat-label">Followers</div></div>
+      <div class="ps-stat"><div class="ps-stat-val" id="ps-hcp">—</div><div class="ps-stat-label">Handicap</div></div>
+    </div>
+    <div class="ps-recent">
+      <div class="ps-recent-label">Recent rounds</div>
+      <div id="ps-rounds-list"></div>
+    </div>
+    <div class="ps-actions">
+      <button class="ps-follow-btn ps-follow-green" id="ps-follow-btn" onclick="profileFollow()">Follow</button>
+      <button class="ps-follow-btn ps-follow-ghost" onclick="showToast('Message coming soon')">Message</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+const AV={
+  av0:{bg:'rgba(45,204,126,.15)',col:'#2dcc7e'},
+  av1:{bg:'rgba(96,165,250,.15)',col:'#60a5fa'},
+  av2:{bg:'rgba(201,168,76,.15)',col:'#c9a84c'},
+  av3:{bg:'rgba(248,113,113,.15)',col:'#f87171'},
+  av4:{bg:'rgba(167,139,250,.15)',col:'#a78bfa'},
+  av5:{bg:'rgba(251,146,60,.15)',col:'#fb923c'},
+  av6:{bg:'rgba(34,211,238,.15)',col:'#22d3ee'},
+  av7:{bg:'rgba(244,114,182,.15)',col:'#f472b6'},
+};
+
+const ALL_USERS = [
+  { id:1, av:'av1', name:'Jake T.',    handle:'@jaket',        hcp:'6',  bio:'Scratch chaser. Coral Oaks regular. Will birdie your skin.', home:'Coral Oaks GC', location:'Cape Coral, FL', rounds:47, following:28, followers:34, mutual:['Dan S.','Chris L.'], state:'following', live:true, liveHole:12, liveCourse:'Coral Oaks GC', recentRounds:[{course:'Coral Oaks GC',score:'-2',date:'Today'},{course:'Cape Coral GC',score:'+1',date:'Sat'},{course:'Tiburón (Black)',score:'+4',date:'Thu'}] },
+  { id:2, av:'av2', name:'Dan S.',     handle:'@dansmith_golf', hcp:'18', bio:'HCP 18 and proud. Chip-in specialist. Dots king.', home:'Cape Coral GC', location:'Cape Coral, FL', rounds:31, following:19, followers:22, mutual:['Jake T.','Chris L.'], state:'following', live:true, liveHole:7, liveCourse:'Cape Coral GC', recentRounds:[{course:'Cape Coral GC',score:'+4',date:'Today'},{course:'Coral Oaks GC',score:'+6',date:'Fri'},{course:'Palmetto-Pine',score:'+3',date:'Wed'}] },
+  { id:3, av:'av3', name:'Chris L.',   handle:'@chrisl22',      hcp:'22', bio:'22 handicap. Three-putt champion. At least I show up.', home:'Palmetto-Pine CC', location:'Cape Coral, FL', rounds:28, following:14, followers:18, mutual:['Jake T.','Dan S.'], state:'following', live:false, recentRounds:[{course:'Palmetto-Pine',score:'+8',date:'Sat'},{course:'Cape Coral GC',score:'+11',date:'Thu'},{course:'Coral Oaks GC',score:'+9',date:'Mon'}] },
+  { id:4, av:'av4', name:'Rob M.',     handle:'@robmgolf',      hcp:'9',  bio:'9 HCP. Nassau specialist. Ask me about my eagle on 14.', home:'Palmetto-Pine CC', location:'Fort Myers, FL', rounds:62, following:41, followers:58, mutual:['Jake T.'], state:'following', live:false, recentRounds:[{course:'Palmetto-Pine',score:'-1',date:'Yesterday'},{course:'TPC Sawgrass',score:'+3',date:'Last week'},{course:'Tiburón (Black)',score:'+1',date:'Last week'}] },
+  { id:5, av:'av5', name:'Tony B.',    handle:'@tonybgolf',     hcp:'14', bio:'Weekend warrior. Wolf game enthusiast. Skins or bust.', home:'Cape Coral GC', location:'Cape Coral, FL', rounds:39, following:22, followers:29, mutual:['Rob M.','Jake T.'], state:'none', live:false, recentRounds:[{course:'Cape Coral GC',score:'+2',date:'Sun'},{course:'Coral Oaks GC',score:'+5',date:'Fri'},{course:'Pelican Sound',score:'+3',date:'Wed'}] },
+  { id:6, av:'av6', name:'Steve K.',   handle:'@stevek_golflife',hcp:'18', bio:'18 HCP chasing single digits. TPC Sawgrass bucket list done ✅', home:'Coral Oaks GC', location:'Naples, FL', rounds:44, following:31, followers:37, mutual:['Rob M.'], state:'none', live:false, recentRounds:[{course:'TPC Sawgrass',score:'+10',date:'Sun'},{course:'Coral Oaks GC',score:'+4',date:'Sat'},{course:'Hammock Bay',score:'+6',date:'Thu'}] },
+  { id:7, av:'av7', name:'Phil M.',    handle:'@philmgolf',     hcp:'4',  bio:'4 HCP. Cape Coral local. Looking for competitive rounds.', home:'Cape Coral GC', location:'Cape Coral, FL', rounds:88, following:52, followers:71, mutual:[], state:'none', live:false, recentRounds:[{course:'Cape Coral GC',score:'-3',date:'Today'},{course:'Tiburón (Black)',score:'-1',date:'Sat'},{course:'Streamsong Red',score:'E',date:'Wed'}] },
+  { id:8, av:'av0', name:'Kevin D.',   handle:'@kevind_golf',   hcp:'11', bio:'HCP 11. Coral Oaks member. Wolf format specialist.', home:'Coral Oaks GC', location:'Cape Coral, FL', rounds:55, following:38, followers:44, mutual:['Jake T.','Rob M.'], state:'none', live:true, liveHole:5, liveCourse:'Coral Oaks GC', recentRounds:[{course:'Coral Oaks GC',score:'+1',date:'Today'},{course:'Cape Coral GC',score:'+2',date:'Fri'},{course:'Pelican Sound',score:'+4',date:'Tue'}] },
+  { id:9, av:'av1', name:'Mike T.',    handle:'@miket_links',   hcp:'18', bio:'HCP 18. Weekend warrior. Skins or bust.', home:'Cape Coral GC', location:'Cape Coral, FL', rounds:22, following:11, followers:15, mutual:[], state:'none', live:false, recentRounds:[{course:'Cape Coral GC',score:'+5',date:'Sat'},{course:'Palmetto-Pine',score:'+7',date:'Wed'}] },
+];
+
+const REQUESTS = [
+  { id:10, av:'av2', name:'Derek W.', handle:'@derekw_golf', hcp:'15', mutual:'Jake T.', mutualCount:1 },
+  { id:11, av:'av5', name:'Brian K.', handle:'@briankgolf',  hcp:'20', mutual:'Rob M., Tony B.', mutualCount:2 },
+];
+
+const NEARBY = [
+  { id:7,  av:'av7', name:'Phil M.',  handle:'@philmgolf',    dist:'0.8 mi', hcp:'4',  state:'none' },
+  { id:8,  av:'av0', name:'Kevin D.', handle:'@kevind_golf',  dist:'1.2 mi', hcp:'11', state:'none' },
+  { id:9,  av:'av1', name:'Mike T.',  handle:'@miket_links',  dist:'2.1 mi', hcp:'18', state:'none' },
+  { id:5,  av:'av5', name:'Tony B.',  handle:'@tonybgolf',    dist:'2.4 mi', hcp:'14', state:'none' },
+  { id:6,  av:'av6', name:'Steve K.', handle:'@stevek_golflife',dist:'4.8 mi',hcp:'18',state:'none' },
+];
+
+let currentTab = 'suggested';
+let followStates = {};
+let nearbyFollowStates = {};
+let currentProfileUser = null;
+let searchTimer = null;
+
+// Init follow states
+ALL_USERS.forEach(u => { followStates[u.id] = u.state; });
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  showTab('suggested');
+  updateRequestBadge();
+});
+
+// ── TABS ──
+function showTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.stab').forEach((t,i) => {
+    t.classList.toggle('active', ['suggested','nearby','following','followers','requests'][i] === tab);
+  });
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  const container = document.getElementById('tab-content');
+  switch(tab) {
+    case 'suggested':  container.innerHTML = renderSuggested(); break;
+    case 'nearby':     container.innerHTML = renderNearby();    break;
+    case 'following':  container.innerHTML = renderFollowing();  break;
+    case 'followers':  container.innerHTML = renderFollowers();  break;
+    case 'requests':   container.innerHTML = renderRequests();   break;
+  }
+}
+
+// ── SUGGESTED ──
+function renderSuggested() {
+  const notFollowing = ALL_USERS.filter(u => followStates[u.id] === 'none');
+  const following    = ALL_USERS.filter(u => followStates[u.id] === 'following');
+
+  let html = '';
+
+  // Invite section
+  html += `<div class="invite-section">
+    <div class="invite-title">🏌️ Grow your crew</div>
+    <div class="invite-sub">Invite your golf buddies to StrokeStack — they'll see your rounds, trash talk, and bets in real time.</div>
+    <div class="invite-actions">
+      <button class="invite-btn ib-green" onclick="shareInvite()">📤 Share invite link</button>
+      <button class="invite-btn ib-ghost" onclick="shareText()">💬 Text invite</button>
+    </div>
+    <div class="invite-link-row" onclick="copyLink()">
+      <div class="invite-link-url">strokestack.golf/invite/mikerr</div>
+      <div class="invite-link-copy">Copy →</div>
+    </div>
+  </div>`;
+
+  // Requests preview (if any)
+  if (REQUESTS.length) {
+    html += `<div class="section-label">Follow requests <div class="section-label-action" onclick="showTab('requests')">See all →</div></div>`;
+    html += REQUESTS.slice(0,1).map(r => renderRequestCard(r)).join('');
+  }
+
+  // Suggested to follow
+  if (notFollowing.length) {
+    html += `<div class="section-label">People you may know</div>`;
+    html += notFollowing.map((u,i) => renderFriendCard(u, i)).join('');
+  }
+
+  // Already following
+  if (following.length) {
+    html += `<div class="section-label">Already following <div class="section-label-action" onclick="showTab('following')">See all →</div></div>`;
+    html += following.slice(0,3).map((u,i) => renderFriendCard(u, i)).join('');
+  }
+
+  return html;
+}
+
+// ── NEARBY ──
+function renderNearby() {
+  return `
+    <div class="section-label">Golfers near Cape Coral, FL <div class="section-label-action" onclick="detectLocation()">📍 Update</div></div>
+    <div class="nearby-strip">
+      ${NEARBY.map((u,i) => {
+        const av = AV[u.av];
+        const isF = nearbyFollowStates[u.id] === 'following';
+        return `<div class="nearby-card" style="animation-delay:${i*.06}s" onclick="openProfile(${u.id})">
+          <div class="nearby-av" style="background:${av.bg};color:${av.col}">${u.handle.replace('@','').substring(0,2).toUpperCase()}</div>
+          <div class="nearby-name">${u.name}</div>
+          <div class="nearby-handle">${u.handle}</div>
+          <div class="nearby-dist">📍 ${u.dist}</div>
+          <div class="nearby-hcp">HCP ${u.hcp}</div>
+          <button class="nearby-follow${isF?' following':''}" id="nf-${u.id}"
+            onclick="event.stopPropagation();toggleNearbyFollow(${u.id},this)">
+            ${isF?'Following':'+ Follow'}
+          </button>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="section-label" style="margin-top:8px;">All nearby golfers</div>
+    ${ALL_USERS.filter(u => u.location?.includes('Cape Coral') || u.location?.includes('Fort Myers')).map((u,i) => renderFriendCard(u, i)).join('')}`;
+}
+
+// ── FOLLOWING ──
+function renderFollowing() {
+  const following = ALL_USERS.filter(u => followStates[u.id] === 'following');
+  if (!following.length) return `<div class="empty-state"><div class="empty-icon">🏌️</div><div class="empty-title">No one yet</div><div class="empty-sub">Search for your golf crew or check out suggested players.</div></div>`;
+
+  const live = following.filter(u => u.live);
+  const rest = following.filter(u => !u.live);
+  let html = '';
+
+  if (live.length) {
+    html += `<div class="section-label">🔴 On the course now</div>`;
+    html += live.map((u,i) => renderFollowingCard(u, i)).join('');
+  }
+  if (rest.length) {
+    html += `<div class="section-label">All following</div>`;
+    html += rest.map((u,i) => renderFollowingCard(u, i)).join('');
+  }
+  return html;
+}
+
+// ── FOLLOWERS ──
+function renderFollowers() {
+  const followers = ALL_USERS.filter(u => u.id <= 4); // simulate
+  let html = `<div class="section-label">${followers.length} followers</div>`;
+  const notBack = followers.filter(u => followStates[u.id] !== 'following');
+  const alreadyBack = followers.filter(u => followStates[u.id] === 'following');
+
+  if (notBack.length) {
+    html += `<div class="section-label" style="padding-top:0">Not following back</div>`;
+    html += notBack.map((u,i) => renderFriendCard({...u, _followBack:true}, i)).join('');
+  }
+  if (alreadyBack.length) {
+    html += `<div class="section-label" style="padding-top:0">Mutual follows</div>`;
+    html += alreadyBack.map((u,i) => renderFriendCard(u, i)).join('');
+  }
+  return html;
+}
+
+// ── REQUESTS ──
+function renderRequests() {
+  if (!REQUESTS.length) return `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All caught up</div><div class="empty-sub">No pending follow requests.</div></div>`;
+  return `<div class="section-label">${REQUESTS.length} pending request${REQUESTS.length>1?'s':''}</div>`
+    + REQUESTS.map(r => renderRequestCard(r)).join('');
+}
+
+// ── CARD RENDERERS ──
+function renderFriendCard(u, idx) {
+  const av = AV[u.av];
+  const state = followStates[u.id];
+  const isFollowing = state === 'following';
+  const followBackMode = u._followBack && !isFollowing;
+  let btnClass = 'follow-btn';
+  let btnText = 'Follow';
+  if (isFollowing)    { btnClass += ' following'; btnText = 'Following'; }
+  if (followBackMode) { btnClass += ' follow-back'; btnText = 'Follow back'; }
+
+  const liveTag = u.live ? `<span class="fc-tag live">🔴 Live · H${u.liveHole}</span>` : '';
+  const mutualTag = u.mutual?.length ? `<span class="fc-tag mutual">👥 ${u.mutual.length} mutual</span>` : '';
+
+  const mutualAvsHtml = u.mutual?.length ? `
+    <div class="fc-mutual">
+      <div class="fc-mutual-avs">
+        ${u.mutual.slice(0,3).map((_,i) => `<div class="fc-mutual-av" style="background:${AV['av'+i].bg};color:${AV['av'+i].col}">${_.substring(0,1)}</div>`).join('')}
+      </div>
+      Followed by ${u.mutual.slice(0,2).join(', ')}${u.mutual.length > 2 ? ` +${u.mutual.length-2}` : ''}
+    </div>` : '';
+
+  return `<div class="friend-card" style="animation-delay:${idx*.05}s">
+    <div class="fc-av" style="background:${av.bg};color:${av.col}" onclick="openProfile(${u.id})">${u.handle.replace('@','').substring(0,2).toUpperCase()}</div>
+    <div class="fc-body">
+      <div class="fc-top">
+        <div>
+          <div class="fc-name" onclick="openProfile(${u.id})">${u.name}</div>
+          <div class="fc-handle">${u.handle}</div>
+        </div>
+        <button class="${btnClass}" id="fb-${u.id}" onclick="toggleFollow(${u.id},this)">${btnText}</button>
+      </div>
+      <div class="fc-bio">${u.bio}</div>
+      <div class="fc-stats">
+        <div class="fc-stat"><strong>${u.rounds}</strong> rounds</div>
+        <div class="fc-stat"><strong>HCP ${u.hcp}</strong></div>
+        <div class="fc-stat"><strong>${u.home}</strong></div>
+      </div>
+      <div class="fc-tags">${liveTag}${mutualTag}</div>
+      ${mutualAvsHtml}
+    </div>
+  </div>`;
+}
+
+function renderFollowingCard(u, idx) {
+  const av = AV[u.av];
+  return `<div class="following-card" style="animation-delay:${idx*.04}s" onclick="openProfile(${u.id})">
+    <div class="fwc-av" style="background:${av.bg};color:${av.col}">${u.handle.replace('@','').substring(0,2).toUpperCase()}</div>
+    <div class="fwc-info">
+      <div class="fwc-name">${u.name} <span style="font-size:12px;color:var(--muted);font-weight:400">${u.handle}</span></div>
+      <div class="fwc-detail ${u.live?'fwc-live':''}">${u.live ? `🔴 Live · H${u.liveHole} at ${u.liveCourse}` : `HCP ${u.hcp} · ${u.home}`}</div>
+    </div>
+    <button class="follow-btn following" onclick="event.stopPropagation();toggleFollow(${u.id},this)">Following</button>
+  </div>`;
+}
+
+function renderRequestCard(r) {
+  const av = AV[r.av];
+  return `<div class="request-card" id="req-${r.id}">
+    <div class="rc-av" style="background:${av.bg};color:${av.col}" onclick="openProfile(${r.id})">${r.handle.replace('@','').substring(0,2).toUpperCase()}</div>
+    <div class="rc-info">
+      <div class="rc-name">${r.name}</div>
+      <div class="rc-handle">${r.handle}</div>
+      <div class="rc-mutual">👥 Followed by ${r.mutual} · HCP ${r.hcp}</div>
+    </div>
+    <div class="rc-actions">
+      <button class="rc-accept" onclick="acceptRequest(${r.id})">Accept</button>
+      <button class="rc-decline" onclick="declineRequest(${r.id})">✕</button>
+    </div>
+  </div>`;
+}
+
+// ── FOLLOW ACTIONS ──
+function toggleFollow(id, btn) {
+  const current = followStates[id];
+  const user = ALL_USERS.find(u => u.id === id);
+  if (current === 'following') {
+    followStates[id] = 'none';
+    btn.textContent = 'Follow';
+    btn.className = 'follow-btn';
+    showToast(`Unfollowed ${user?.handle}`);
+  } else {
+    followStates[id] = 'following';
+    btn.textContent = 'Following';
+    btn.className = 'follow-btn following';
+    showToast(`Following ${user?.handle} ✓`);
+  }
+  updateRequestBadge();
+  // Refresh current tab
+  if (currentTab === 'following' || currentTab === 'suggested') {
+    setTimeout(() => renderTab(currentTab), 100);
+  }
+}
+
+function toggleNearbyFollow(id, btn) {
+  const current = nearbyFollowStates[id];
+  const user = NEARBY.find(u => u.id === id);
+  if (current === 'following') {
+    nearbyFollowStates[id] = 'none';
+    btn.textContent = '+ Follow';
+    btn.className = 'nearby-follow';
+  } else {
+    nearbyFollowStates[id] = 'following';
+    btn.textContent = 'Following';
+    btn.className = 'nearby-follow following';
+    showToast(`Following ${user?.handle} ✓`);
+  }
+}
+
+function acceptRequest(id) {
+  const r = REQUESTS.find(r => r.id === id);
+  const card = document.getElementById(`req-${id}`);
+  if (card) {
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(20px)';
+    card.style.transition = 'all .3s ease';
+    setTimeout(() => {
+      card.remove();
+      REQUESTS.splice(REQUESTS.indexOf(r), 1);
+      updateRequestBadge();
+      if (!REQUESTS.length && currentTab === 'requests') renderTab('requests');
+    }, 300);
+  }
+  showToast(`Accepted ${r?.name}'s follow request ✓`);
+}
+
+function declineRequest(id) {
+  const r = REQUESTS.find(r => r.id === id);
+  const card = document.getElementById(`req-${id}`);
+  if (card) {
+    card.style.opacity = '0';
+    card.style.transition = 'opacity .3s ease';
+    setTimeout(() => {
+      card.remove();
+      REQUESTS.splice(REQUESTS.indexOf(r), 1);
+      updateRequestBadge();
+    }, 300);
+  }
+  showToast('Request declined');
+}
+
+function updateRequestBadge() {
+  const count = REQUESTS.length;
+  document.getElementById('req-badge').textContent = count;
+  document.getElementById('req-count').textContent = count;
+  document.getElementById('req-badge').style.display = count ? '' : 'none';
+  document.getElementById('req-count').style.display = count ? '' : 'none';
+}
+
+// ── SEARCH ──
+let searchDebounce = null;
+function handleSearch(val) {
+  const clear = document.getElementById('search-clear');
+  const results = document.getElementById('search-results');
+  clear.classList.toggle('show', val.length > 0);
+
+  clearTimeout(searchDebounce);
+  if (!val.trim()) { results.classList.remove('show'); return; }
+
+  searchDebounce = setTimeout(() => {
+    const q = val.toLowerCase();
+    const matches = ALL_USERS.filter(u =>
+      u.name.toLowerCase().includes(q) ||
+      u.handle.toLowerCase().includes(q) ||
+      u.bio.toLowerCase().includes(q) ||
+      u.home.toLowerCase().includes(q)
+    );
+    renderSearchResults(matches, val);
+  }, 220);
+}
+
+function renderSearchResults(users, query) {
+  const results = document.getElementById('search-results');
+  if (!users.length) {
+    results.classList.add('show');
+    results.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">
+      No results for "<strong style="color:var(--text)">${query}</strong>"<br>
+      <span style="font-size:12px;">Try searching by name, @username, or home course</span>
+    </div>`;
+    return;
+  }
+  results.classList.add('show');
+  results.innerHTML = `
+    <div style="padding:8px 14px 6px;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">
+      ${users.length} result${users.length>1?'s':''}
+    </div>` +
+    users.map(u => {
+      const av = AV[u.av];
+      const state = followStates[u.id];
+      const btnText = state === 'following' ? 'Following' : 'Follow';
+      const btnCls = state === 'following' ? 'follow-btn following' : 'follow-btn';
+      return `<div class="search-result-row" onclick="openProfile(${u.id})">
+        <div class="srr-av" style="background:${av.bg};color:${av.col}">${u.handle.replace('@','').substring(0,2).toUpperCase()}</div>
+        <div class="srr-info">
+          <div class="srr-name">${highlightMatch(u.name, query)}</div>
+          <div class="srr-handle">${highlightMatch(u.handle, query)}</div>
+          <div class="srr-meta">HCP ${u.hcp} · ${u.home}${u.live?' · 🔴 Live':''}</div>
+        </div>
+        <button class="${btnCls}" onclick="event.stopPropagation();toggleFollow(${u.id},this)">${btnText}</button>
+      </div>`;
+    }).join('');
+}
+
+function highlightMatch(text, query) {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return text.substring(0,idx) + `<mark style="background:rgba(45,204,126,.2);color:var(--green);border-radius:3px;">${text.substring(idx,idx+query.length)}</mark>` + text.substring(idx+query.length);
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').classList.remove('show');
+  document.getElementById('search-results').classList.remove('show');
+}
+
+// ── PROFILE MODAL ──
+function openProfile(id) {
+  const u = ALL_USERS.find(x => x.id === id);
+  if (!u) return;
+  currentProfileUser = u;
+  const av = AV[u.av];
+
+  document.getElementById('ps-av').style.background = av.bg;
+  document.getElementById('ps-av').style.color = av.col;
+  document.getElementById('ps-av').textContent = u.handle.replace('@','').substring(0,2).toUpperCase();
+  document.getElementById('ps-name').textContent = u.name;
+  document.getElementById('ps-handle').textContent = u.handle;
+  document.getElementById('ps-bio').textContent = u.bio;
+  document.getElementById('ps-rounds').textContent = u.rounds;
+  document.getElementById('ps-following').textContent = u.following;
+  document.getElementById('ps-followers').textContent = u.followers;
+  document.getElementById('ps-hcp').textContent = u.hcp;
+
+  document.getElementById('ps-rounds-list').innerHTML = (u.recentRounds || []).map(r =>
+    `<div class="ps-round-row">
+      <span class="ps-round-course">${r.course} · ${r.date}</span>
+      <span class="ps-round-score ${r.score.startsWith('-')?'pos':r.score.startsWith('+')?'neg':''}">${r.score}</span>
+    </div>`
+  ).join('');
+
+  const state = followStates[id];
+  const followBtn = document.getElementById('ps-follow-btn');
+  if (state === 'following') {
+    followBtn.textContent = 'Following';
+    followBtn.className = 'ps-follow-btn ps-follow-ghost';
+  } else {
+    followBtn.textContent = 'Follow';
+    followBtn.className = 'ps-follow-btn ps-follow-green';
+  }
+
+  document.getElementById('profile-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function profileFollow() {
+  if (!currentProfileUser) return;
+  const id = currentProfileUser.id;
+  const btn = document.getElementById('ps-follow-btn');
+  const fbBtn = document.getElementById(`fb-${id}`);
+  if (followStates[id] === 'following') {
+    followStates[id] = 'none';
+    btn.textContent = 'Follow';
+    btn.className = 'ps-follow-btn ps-follow-green';
+    if (fbBtn) { fbBtn.textContent = 'Follow'; fbBtn.className = 'follow-btn'; }
+    showToast(`Unfollowed ${currentProfileUser.handle}`);
+  } else {
+    followStates[id] = 'following';
+    btn.textContent = 'Following';
+    btn.className = 'ps-follow-btn ps-follow-ghost';
+    if (fbBtn) { fbBtn.textContent = 'Following'; fbBtn.className = 'follow-btn following'; }
+    showToast(`Following ${currentProfileUser.handle} ✓`);
+  }
+}
+
+function closeProfile(e) {
+  if (e && e.target !== document.getElementById('profile-modal')) return;
+  closeProfileSheet();
+}
+function closeProfileSheet() {
+  document.getElementById('profile-modal').classList.remove('show');
+  document.body.style.overflow = '';
+  currentProfileUser = null;
+}
+
+// ── LOCATION ──
+function detectLocation() {
+  showToast('📍 Locating you…');
+  setTimeout(() => showToast('📍 Cape Coral, FL — courses updated'), 1500);
+}
+
+// ── INVITE ──
+function shareInvite() {
+  const url = 'https://strokestack.golf/invite/mikerr';
+  if (navigator.share) {
+    navigator.share({ title:'Join me on StrokeStack', url });
+  } else { copyLink(); }
+}
+function shareText() {
+  const msg = `Join me on StrokeStack — golf bets, trash talk, and live scoring.\nhttps://strokestack.golf/invite/mikerr`;
+  if (navigator.share) {
+    navigator.share({ title:'StrokeStack', text:msg });
+  } else { navigator.clipboard?.writeText(msg); showToast('Invite text copied ✓'); }
+}
+function copyLink() {
+  navigator.clipboard?.writeText('https://strokestack.golf/invite/mikerr').catch(()=>{});
+  showToast('Invite link copied ✓');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

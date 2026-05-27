@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Settlement — StrokeStack</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black:  #090c0b;
+  --dark:   #0f1512;
+  --card:   #141a17;
+  --card2:  #1a2320;
+  --card3:  #202c28;
+  --green:  #2dcc7e;
+  --green-dim: #1a7d4c;
+  --green-glow: rgba(45,204,126,0.12);
+  --green-border: rgba(45,204,126,0.28);
+  --gold:   #c9a84c;
+  --gold-glow: rgba(201,168,76,0.1);
+  --gold-border: rgba(201,168,76,0.3);
+  --red:    #f87171;
+  --red-glow: rgba(248,113,113,0.1);
+  --red-border: rgba(248,113,113,0.28);
+  --blue:   #60a5fa;
+  --text:   #edeae2;
+  --muted:  #6b7d74;
+  --border: rgba(255,255,255,0.06);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 120px;
+}
+
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .3;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 60px;
+  background: rgba(9,12,11,0.95); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: .05em; color: var(--text); text-decoration: none; }
+.nav-logo span { color: var(--green); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.nav-share-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--muted);
+  background: var(--card2); border: 1px solid var(--border);
+  padding: 6px 12px; border-radius: 7px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all .2s;
+}
+.nav-share-btn:hover { color: var(--text); border-color: rgba(255,255,255,.12); }
+.nav-share-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── HERO ── */
+.hero {
+  padding: 28px 20px 24px;
+  background: linear-gradient(180deg, rgba(45,204,126,0.05) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.hero::after {
+  content: ''; position: absolute; top: -60px; right: -40px;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(45,204,126,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-eyebrow {
+  font-size: 10px; font-weight: 500; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.round-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.hero-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px; letter-spacing: .02em; line-height: 1;
+  color: var(--text); margin-bottom: 4px;
+}
+.hero-sub { font-size: 13px; color: var(--muted); }
+.hero-meta {
+  display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap;
+}
+.hero-meta-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--muted);
+}
+.hero-meta-item svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+.hero-meta-item span { color: var(--text); font-weight: 500; }
+
+/* ── SECTION ── */
+.section { padding: 0 16px; margin-top: 24px; }
+.section-label {
+  font-size: 10px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── WINNER CARD ── */
+.winner-card {
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+  border-radius: 16px; padding: 20px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--card) 60%, rgba(201,168,76,0.05) 100%);
+  position: relative; overflow: hidden;
+  animation: fadeUp .5s ease both;
+}
+.winner-card::before {
+  content: '🏆';
+  position: absolute; top: -10px; right: 16px;
+  font-size: 64px; opacity: .08; line-height: 1;
+}
+.winner-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.winner-avatar {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 500;
+  border: 2px solid var(--gold-border);
+}
+.winner-name { font-size: 18px; font-weight: 500; color: var(--text); }
+.winner-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 500; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--gold);
+  background: var(--gold-glow); border: 1px solid var(--gold-border);
+  padding: 3px 8px; border-radius: 100px; margin-top: 3px;
+}
+.winner-amount {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px; letter-spacing: .02em; color: var(--gold);
+  line-height: 1; margin-bottom: 4px;
+}
+.winner-amount-label { font-size: 12px; color: var(--muted); }
+.winner-breakdown {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px;
+  padding-top: 14px; border-top: 1px solid var(--border);
+}
+.win-chip {
+  font-size: 11px; padding: 4px 10px; border-radius: 100px;
+  background: var(--gold-glow); border: 1px solid var(--gold-border);
+  color: var(--gold);
+}
+
+/* ── PLAYER SETTLEMENT CARDS ── */
+.player-cards { display: flex; flex-direction: column; gap: 10px; }
+
+.player-settle-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+  animation: fadeUp .4s ease both;
+}
+.player-settle-card:nth-child(1){ animation-delay:.05s }
+.player-settle-card:nth-child(2){ animation-delay:.1s }
+.player-settle-card:nth-child(3){ animation-delay:.15s }
+.player-settle-card:nth-child(4){ animation-delay:.2s }
+.player-settle-card.owes { border-color: var(--red-border); }
+.player-settle-card.collects { border-color: var(--green-border); }
+.player-settle-card.even { border-color: var(--border); }
+
+.psc-header {
+  display: grid; grid-template-columns: 42px 1fr auto;
+  align-items: center; gap: 12px; padding: 14px 16px;
+  cursor: pointer; user-select: none;
+}
+.psc-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 500; flex-shrink: 0;
+}
+.av0 { background: rgba(45,204,126,.15); color: var(--green); }
+.av1 { background: rgba(96,165,250,.15); color: var(--blue); }
+.av2 { background: rgba(201,168,76,.15); color: var(--gold); }
+.av3 { background: rgba(248,113,113,.15); color: var(--red); }
+.av4 { background: rgba(167,139,250,.15); color: #a78bfa; }
+.av5 { background: rgba(251,146,60,.15); color: #fb923c; }
+.psc-info {}
+.psc-name { font-size: 15px; font-weight: 500; color: var(--text); }
+.psc-status { font-size: 11px; margin-top: 2px; }
+.psc-status.owes { color: var(--red); }
+.psc-status.collects { color: var(--green); }
+.psc-status.even { color: var(--muted); }
+.psc-total { text-align: right; }
+.psc-amount {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px; letter-spacing: .02em; line-height: 1;
+}
+.psc-amount.pos { color: var(--green); }
+.psc-amount.neg { color: var(--red); }
+.psc-amount.even { color: var(--muted); }
+.psc-chevron {
+  font-size: 11px; color: var(--muted); margin-top: 2px; text-align: right;
+  transition: transform .2s;
+}
+.psc-header.open .psc-chevron { transform: rotate(180deg); }
+
+/* EXPANDED BREAKDOWN */
+.psc-breakdown {
+  display: none; padding: 0 16px 14px;
+  border-top: 1px solid var(--border);
+  animation: slideDown .2s ease;
+}
+.psc-breakdown.open { display: block; }
+@keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+.breakdown-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.breakdown-row:last-of-type { border-bottom: none; }
+.br-left { display: flex; align-items: center; gap: 8px; }
+.br-format-badge {
+  font-size: 9px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 100px;
+}
+.fmt-skins  { background: rgba(201,168,76,.1); color: var(--gold); border: 1px solid var(--gold-border); }
+.fmt-nassau { background: rgba(96,165,250,.1); color: var(--blue); border: 1px solid rgba(96,165,250,.28); }
+.fmt-stroke { background: var(--green-glow); color: var(--green); border: 1px solid var(--green-border); }
+.fmt-dots   { background: rgba(167,139,250,.1); color: #a78bfa; border: 1px solid rgba(167,139,250,.28); }
+.fmt-wolf   { background: rgba(251,146,60,.1); color: #fb923c; border: 1px solid rgba(251,146,60,.28); }
+.fmt-other  { background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
+.br-desc { color: var(--muted); }
+.br-amount { font-weight: 500; font-family: 'DM Mono', monospace; font-size: 13px; }
+.br-pos { color: var(--green); }
+.br-neg { color: var(--red); }
+
+/* VENMO / PAYPAL BUTTONS */
+.pay-actions {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.venmo-btn {
+  flex: 1; min-width: 120px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 16px; border-radius: 9px; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  transition: all .2s; text-decoration: none;
+}
+.venmo-btn-blue {
+  background: #3d95ce; color: #fff;
+}
+.venmo-btn-blue:hover { background: #2d85be; transform: translateY(-1px); }
+.venmo-btn-paypal {
+  background: #ffc439; color: #003087;
+}
+.venmo-btn-paypal:hover { background: #f0b429; transform: translateY(-1px); }
+.venmo-btn-request {
+  background: var(--green); color: var(--black);
+}
+.venmo-btn-request:hover { background: #3ddc8e; transform: translateY(-1px); }
+.venmo-btn-collect {
+  background: var(--card2); color: var(--muted);
+  border: 1px solid var(--border);
+}
+.venmo-btn-collect:hover { color: var(--text); border-color: rgba(255,255,255,.12); }
+.venmo-btn-cash {
+  background: none; color: var(--green);
+  border: 1px solid var(--green-border);
+  flex: 0 0 auto;
+}
+.venmo-btn-cash:hover { background: var(--green-glow); }
+.venmo-btn-cash.paid {
+  background: var(--green-glow); color: var(--green);
+  border-color: var(--green-border); pointer-events: none;
+}
+.cash-paid-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--green); font-weight: 500;
+  background: var(--green-glow); border: 1px solid var(--green-border);
+  padding: 5px 12px; border-radius: 100px; margin-top: 2px;
+}
+.venmo-icon { font-size: 15px; }
+.venmo-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+.venmo-sent { background: var(--green-glow) !important; color: var(--green) !important; border: 1px solid var(--green-border) !important; pointer-events: none; }
+
+/* FORMAT BREAKDOWN SECTION */
+.format-breakdown-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden; margin-bottom: 10px;
+  animation: fadeUp .4s ease both;
+}
+.fbc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; cursor: pointer; user-select: none;
+}
+.fbc-left { display: flex; align-items: center; gap: 10px; }
+.fbc-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+}
+.fbc-title { font-size: 14px; font-weight: 500; color: var(--text); }
+.fbc-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.fbc-total {
+  font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: .03em;
+  color: var(--gold);
+}
+.fbc-body {
+  display: none; padding: 0 16px 14px;
+  border-top: 1px solid var(--border);
+}
+.fbc-body.open { display: block; }
+.fbc-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.fbc-row:last-child { border-bottom: none; }
+.fbc-row-left { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.fbc-row-val { font-weight: 500; font-family: 'DM Mono', monospace; }
+
+/* DOTS SPECIAL CARD */
+.dots-settle-card {
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+  border-radius: 14px; padding: 16px; margin-bottom: 10px;
+  background: linear-gradient(135deg, var(--card) 70%, rgba(201,168,76,0.04) 100%);
+  animation: fadeUp .4s .25s ease both;
+}
+.dots-settle-title {
+  font-size: 11px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.dots-settle-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px;
+}
+.dot-player-col { text-align: center; }
+.dot-player-av {
+  width: 32px; height: 32px; border-radius: 50%; margin: 0 auto 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500;
+}
+.dot-player-name { font-size: 10px; color: var(--muted); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot-player-dots {
+  font-family: 'Bebas Neue', sans-serif; font-size: 26px;
+  letter-spacing: .02em; color: var(--gold); line-height: 1;
+}
+.dot-player-val { font-size: 10px; color: var(--muted); }
+.dots-settle-log {
+  border-top: 1px solid var(--border); padding-top: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.dot-log-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; padding: 4px 0;
+}
+.dot-log-left { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+.dot-log-val { font-weight: 500; }
+.dot-log-pos { color: var(--green); }
+.dot-log-neg { color: var(--red); }
+
+/* GRAND TOTAL CARD */
+.grand-total-card {
+  background: var(--card); border: 1px solid var(--green-border);
+  border-radius: 14px; padding: 20px; margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--card) 60%, rgba(45,204,126,0.04) 100%);
+  animation: fadeUp .4s .3s ease both;
+}
+.gt-title {
+  font-size: 10px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+}
+.gt-rows { display: flex; flex-direction: column; gap: 0; }
+.gt-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.gt-row:last-child { border-bottom: none; }
+.gt-player { display: flex; align-items: center; gap: 8px; }
+.gt-av { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 500; flex-shrink: 0; }
+.gt-name { color: var(--text); }
+.gt-net {
+  font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500;
+}
+.gt-pos { color: var(--green); }
+.gt-neg { color: var(--red); }
+.gt-zero { color: var(--muted); }
+
+/* SEND ALL BUTTON */
+.send-all-wrap {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  padding: 12px 16px 28px;
+  background: linear-gradient(0deg, rgba(9,12,11,1) 60%, transparent 100%);
+}
+.send-all-btn {
+  width: 100%; padding: 15px;
+  background: var(--green); color: var(--black);
+  border: none; border-radius: 12px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: all .2s;
+}
+.send-all-btn:hover { background: #3ddc8e; transform: translateY(-1px); }
+.send-all-btn.done {
+  background: var(--green-dim); color: var(--green);
+  pointer-events: none;
+}
+.send-all-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+.send-all-sub {
+  text-align: center; font-size: 11px; color: var(--muted); margin-top: 6px;
+}
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(12px);
+  background: var(--card2); border: 1px solid var(--green-border);
+  color: var(--green); font-size: 13px; font-weight: 500;
+  padding: 10px 22px; border-radius: 100px; z-index: 300;
+  opacity: 0; transition: all .3s; white-space: nowrap; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── CONFIRM MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(9,12,11,.88); backdrop-filter: blur(8px);
+  display: none; align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+.modal-overlay.show { display: flex; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal-sheet {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px 20px 0 0; padding: 24px 20px 40px;
+  width: 100%; max-width: 520px;
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-handle { width: 36px; height: 3px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+.modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: .02em; color: var(--text); margin-bottom: 6px; }
+.modal-sub { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+.modal-amount-big {
+  font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: .02em;
+  line-height: 1; margin-bottom: 4px;
+}
+.modal-amount-big.neg { color: var(--red); }
+.modal-amount-big.pos { color: var(--green); }
+.modal-amount-to { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+.modal-btn-row { display: flex; flex-direction: column; gap: 10px; }
+.modal-venmo {
+  width: 100%; padding: 14px; border-radius: 10px; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all .2s;
+}
+.modal-venmo-v { background: #3d95ce; color: #fff; }
+.modal-venmo-v:hover { background: #2d85be; }
+.modal-venmo-p { background: #ffc439; color: #003087; }
+.modal-venmo-p:hover { background: #f0b429; }
+.modal-cancel {
+  width: 100%; padding: 13px; border-radius: 10px;
+  background: none; color: var(--muted); border: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer;
+  transition: all .2s;
+}
+.modal-cancel:hover { color: var(--text); border-color: rgba(255,255,255,.12); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="scorecard.html" class="nav-logo">Stroke<span>Stack</span></a>
+  <div class="nav-right">
+    <button class="nav-share-btn" onclick="shareResults()">
+      <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Share
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow"><div class="round-dot"></div> Round complete</div>
+  <div class="hero-title">Settlement</div>
+  <div class="hero-sub" id="hero-sub">Saturday group · Cape Coral Golf Club</div>
+  <div class="hero-meta">
+    <div class="hero-meta-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span id="hero-date">Sat, May 3 2026</span>
+    </div>
+    <div class="hero-meta-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span id="hero-holes">18 holes</span>
+    </div>
+    <div class="hero-meta-item">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <span id="hero-pot">$0 total pot</span>
+    </div>
+    <div class="hero-meta-item">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span id="hero-players">4 players</span>
+    </div>
+  </div>
+</div>
+
+<!-- WINNER -->
+<div class="section">
+  <div class="section-label">Big winner</div>
+  <div class="winner-card" id="winner-card"></div>
+</div>
+
+<!-- GRAND TOTAL TABLE -->
+<div class="section">
+  <div class="section-label">Net totals</div>
+  <div class="grand-total-card">
+    <div class="gt-title">All formats combined — who's up, who's down</div>
+    <div class="gt-rows" id="gt-rows"></div>
+  </div>
+</div>
+
+<!-- PLAYER BY PLAYER -->
+<div class="section">
+  <div class="section-label">Player breakdown</div>
+  <div class="player-cards" id="player-cards"></div>
+</div>
+
+<!-- FORMAT BREAKDOWN -->
+<div class="section">
+  <div class="section-label">By format</div>
+  <div id="format-cards"></div>
+</div>
+
+<!-- DOTS CARD -->
+<div class="section">
+  <div class="section-label">Dots tracker</div>
+  <div class="dots-settle-card" id="dots-settle-card"></div>
+</div>
+
+<!-- SEND ALL -->
+<div class="send-all-wrap">
+  <button class="send-all-btn" id="send-all-btn" onclick="sendAll()">
+    <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    Send all Venmo requests
+  </button>
+  <div class="send-all-sub" id="send-all-sub">Sends individual requests to each player who owes</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Request payment</div>
+    <div class="modal-sub" id="modal-sub">Choose how you want to collect</div>
+    <div class="modal-amount-big" id="modal-amount"></div>
+    <div class="modal-amount-to" id="modal-to"></div>
+    <div class="modal-btn-row">
+      <a class="modal-venmo modal-venmo-v" id="modal-venmo-link" href="#" target="_blank" onclick="markPaid(event)">
+        💙 Open in Venmo
+      </a>
+      <a class="modal-venmo modal-venmo-p" id="modal-paypal-link" href="#" target="_blank" onclick="markPaid(event)">
+        💛 Open in PayPal
+      </a>
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── ROUND DATA ──
+// In production this comes from localStorage / round state
+// Here we simulate a completed round
+const ROUND = {
+  course: 'Cape Coral Golf Club',
+  date: 'Sat, May 3 2026',
+  holes: 18,
+  formats: ['Skins', 'Nassau', 'Stroke Play'],
+  stake: 5,
+  dotVal: 1,
+};
+
+const PLAYERS = [
+  { name: 'Mike R.',  initials: 'MR', av: 'av0', hcp: 12, venmo: '@MikeRoss',   paypal: 'mikeross@email.com' },
+  { name: 'Jake T.',  initials: 'JT', av: 'av1', hcp: 6,  venmo: '@JakeTaylor', paypal: 'jaket@email.com'    },
+  { name: 'Dan S.',   initials: 'DS', av: 'av2', hcp: 18, venmo: '@DanSmith',   paypal: 'dans@email.com'     },
+  { name: 'Chris L.', initials: 'CL', av: 'av3', hcp: 22, venmo: '@ChrisL',     paypal: 'chrisl@email.com'   },
+];
+
+// Simulated final results per format
+const FORMAT_RESULTS = {
+  Skins: {
+    icon: '🥇', color: 'fmt-skins',
+    iconBg: 'rgba(201,168,76,0.12)',
+    skins: [
+      { hole: 1,  winner: 0, value: 5,  desc: 'Par 4' },
+      { hole: 3,  winner: 0, value: 10, desc: 'Carried from H2' },
+      { hole: 5,  winner: 1, value: 5,  desc: 'Par 4' },
+      { hole: 7,  winner: 0, value: 5,  desc: 'Par 5' },
+      { hole: 9,  winner: 3, value: 15, desc: 'Carried from H6-8' },
+      { hole: 11, winner: 1, value: 5,  desc: 'Par 3' },
+      { hole: 13, winner: 0, value: 10, desc: 'Carried from H12' },
+      { hole: 16, winner: 2, value: 15, desc: 'Carried from H14-15' },
+      { hole: 18, winner: 1, value: 10, desc: 'Carried from H17' },
+    ],
+    // Net per player after skins
+    net: [35, 20, 15, 15],  // Mike wins most skins
+    totalPot: 80,
+  },
+  Nassau: {
+    icon: '🏌️', color: 'fmt-nassau',
+    iconBg: 'rgba(96,165,250,0.12)',
+    segments: [
+      { label: 'Front 9', winner: 0, loser: [1,2,3], amount: 5 },
+      { label: 'Back 9',  winner: 1, loser: [0,2,3], amount: 5 },
+      { label: 'Overall', winner: 0, loser: [1,2,3], amount: 5 },
+    ],
+    net: [25, 10, -15, -20],
+    totalPot: 60,
+  },
+  'Stroke Play': {
+    icon: '📊', color: 'fmt-stroke',
+    iconBg: 'rgba(45,204,126,0.12)',
+    scores: [74, 78, 88, 94],  // net scores
+    net: [15, 5, -5, -15],
+    totalPot: 40,
+  },
+};
+
+const DOTS_DATA = [
+  { pi: 0, oneputts: 6, chipins: 1, total: 8 },
+  { pi: 1, oneputts: 4, chipins: 0, total: 4 },
+  { pi: 2, oneputts: 2, chipins: 1, total: 4 },
+  { pi: 3, oneputts: 2, chipins: 0, total: 2 },
+];
+
+// Calculate net money per player across all formats
+function calcNetMoney() {
+  const net = PLAYERS.map(() => 0);
+  Object.values(FORMAT_RESULTS).forEach(f => {
+    f.net.forEach((amt, i) => net[i] += amt);
+  });
+  // Add dots (net vs average)
+  const avgDots = DOTS_DATA.reduce((s,d) => s + d.total, 0) / PLAYERS.length;
+  DOTS_DATA.forEach(d => {
+    const diff = d.total - avgDots;
+    net[d.pi] += Math.round(diff * ROUND.dotVal * (PLAYERS.length - 1));
+  });
+  return net;
+}
+
+const NET_MONEY = calcNetMoney();
+const TOTAL_POT = Object.values(FORMAT_RESULTS).reduce((s,f) => s + f.totalPot, 0);
+
+// Track which payments have been sent
+const sentPayments = new Set();
+let currentModalPlayer = null;
+
+// ── BUILD UI ──
+window.addEventListener('DOMContentLoaded', () => {
+  buildHero();
+  buildWinner();
+  buildGrandTotal();
+  buildPlayerCards();
+  buildFormatCards();
+  buildDotsCard();
+  updateSendAllBtn();
+});
+
+function buildHero() {
+  document.getElementById('hero-sub').textContent = `Saturday group · ${ROUND.course}`;
+  document.getElementById('hero-date').textContent = ROUND.date;
+  document.getElementById('hero-holes').textContent = `${ROUND.holes} holes`;
+  document.getElementById('hero-pot').textContent = `$${TOTAL_POT} total pot`;
+  document.getElementById('hero-players').textContent = `${PLAYERS.length} players`;
+}
+
+function buildWinner() {
+  const winnerIdx = NET_MONEY.indexOf(Math.max(...NET_MONEY));
+  const winner = PLAYERS[winnerIdx];
+  const amount = NET_MONEY[winnerIdx];
+  const skinsWon = FORMAT_RESULTS.Skins.skins.filter(s => s.winner === winnerIdx).length;
+
+  const chips = ROUND.formats.map(f => {
+    const n = FORMAT_RESULTS[f]?.net[winnerIdx];
+    if (!n || n <= 0) return '';
+    return `<div class="win-chip">${f} +$${n}</div>`;
+  }).filter(Boolean).join('');
+
+  document.getElementById('winner-card').innerHTML = `
+    <div class="winner-top">
+      <div class="winner-avatar ${winner.av}">${winner.initials}</div>
+      <div>
+        <div class="winner-name">${winner.name}</div>
+        <div class="winner-tag">🏆 Big winner · ${skinsWon} skins</div>
+      </div>
+    </div>
+    <div class="winner-amount">+$${amount}</div>
+    <div class="winner-amount-label">total winnings across all formats</div>
+    <div class="winner-breakdown">${chips}</div>`;
+}
+
+function buildGrandTotal() {
+  const sorted = PLAYERS
+    .map((p,i) => ({...p, i, net: NET_MONEY[i]}))
+    .sort((a,b) => b.net - a.net);
+
+  document.getElementById('gt-rows').innerHTML = sorted.map(p => `
+    <div class="gt-row">
+      <div class="gt-player">
+        <div class="gt-av ${p.av}">${p.initials}</div>
+        <div class="gt-name">${p.name}</div>
+      </div>
+      <div class="gt-net ${p.net > 0 ? 'gt-pos' : p.net < 0 ? 'gt-neg' : 'gt-zero'}">
+        ${p.net > 0 ? '+' : ''}$${Math.abs(p.net)}
+      </div>
+    </div>`).join('');
+}
+
+function buildPlayerCards() {
+  const container = document.getElementById('player-cards');
+
+  PLAYERS.forEach((p, pi) => {
+    const net = NET_MONEY[pi];
+    const owes = net < 0;
+    const even = net === 0;
+    const statusClass = owes ? 'owes' : even ? 'even' : 'collects';
+    const statusText  = owes
+      ? `Owes $${Math.abs(net)} total`
+      : even ? 'Breaks even'
+      : `Collects $${net} total`;
+
+    // Build format breakdown rows
+    const formatRows = ROUND.formats.map(f => {
+      const fData = FORMAT_RESULTS[f];
+      if (!fData) return '';
+      const amt = fData.net[pi];
+      const fmtClass = f === 'Skins' ? 'fmt-skins' : f === 'Nassau' ? 'fmt-nassau' : f === 'Dots' ? 'fmt-dots' : f === 'Wolf' ? 'fmt-wolf' : 'fmt-stroke';
+      return `<div class="breakdown-row">
+        <div class="br-left">
+          <span class="br-format-badge ${fmtClass}">${f}</span>
+          <span class="br-desc">${formatDetail(f, pi)}</span>
+        </div>
+        <span class="br-amount ${amt >= 0 ? 'br-pos' : 'br-neg'}">${amt >= 0 ? '+' : ''}$${Math.abs(amt)}</span>
+      </div>`;
+    }).join('');
+
+    // Dots row
+    const dotsNet = dotsNetForPlayer(pi);
+    const dotsRow = `<div class="breakdown-row">
+      <div class="br-left">
+        <span class="br-format-badge fmt-dots">Dots</span>
+        <span class="br-desc">${DOTS_DATA[pi].total} dots · ${DOTS_DATA[pi].oneputts} putts, ${DOTS_DATA[pi].chipins} chip-ins</span>
+      </div>
+      <span class="br-amount ${dotsNet >= 0 ? 'br-pos' : 'br-neg'}">${dotsNet >= 0 ? '+' : ''}$${Math.abs(dotsNet)}</span>
+    </div>`;
+
+    // Pay buttons — only show if owes
+    let payActions = '';
+    if (owes) {
+      payActions = `<div class="pay-actions">
+        <a class="venmo-btn venmo-btn-blue" id="venmo-${pi}"
+          href="${venmoLink(pi, Math.abs(net))}" target="_blank"
+          onclick="markSent(event, ${pi})">
+          <span class="venmo-icon">💙</span> Pay via Venmo
+        </a>
+        <a class="venmo-btn venmo-btn-paypal" id="paypal-${pi}"
+          href="${paypalLink(pi, Math.abs(net))}" target="_blank"
+          onclick="markSent(event, ${pi})">
+          <span class="venmo-icon">💛</span> PayPal
+        </a>
+        <button class="venmo-btn venmo-btn-cash" id="cash-${pi}"
+          onclick="markCashPaid(${pi}, ${Math.abs(net)}, '${p.name}')">
+          💵 Cash
+        </button>
+      </div>`;
+    } else if (!even) {
+      payActions = `<div class="pay-actions">
+        <button class="venmo-btn venmo-btn-request" onclick="openRequestModal(${pi}, ${net})">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Request $${net}
+        </button>
+        <button class="venmo-btn venmo-btn-collect" onclick="copyHandle(${pi})">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy ${p.venmo}
+        </button>
+        <button class="venmo-btn venmo-btn-cash" id="cash-${pi}"
+          onclick="markCashReceived(${pi}, ${net}, '${p.name}')">
+          💵 Got cash
+        </button>
+      </div>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = `player-settle-card ${statusClass}`;
+    card.id = `psc-${pi}`;
+    card.innerHTML = `
+      <div class="psc-header" onclick="toggleCard(${pi})" id="psc-h-${pi}">
+        <div class="psc-avatar ${p.av}">${p.initials}</div>
+        <div class="psc-info">
+          <div class="psc-name">${p.name}</div>
+          <div class="psc-status ${statusClass}">${statusText}</div>
+        </div>
+        <div class="psc-total">
+          <div class="psc-amount ${net > 0 ? 'pos' : net < 0 ? 'neg' : 'even'}">${net > 0 ? '+' : ''}$${Math.abs(net)}</div>
+          <div class="psc-chevron">▼</div>
+        </div>
+      </div>
+      <div class="psc-breakdown" id="psc-b-${pi}">
+        ${formatRows}
+        ${dotsRow}
+      </div>
+      ${payActions}`;
+    container.appendChild(card);
+  });
+}
+
+function formatDetail(format, pi) {
+  if (format === 'Skins') {
+    const won = FORMAT_RESULTS.Skins.skins.filter(s => s.winner === pi).length;
+    return `${won} skin${won !== 1 ? 's' : ''} won`;
+  }
+  if (format === 'Nassau') {
+    const segs = FORMAT_RESULTS.Nassau.segments.filter(s => s.winner === pi);
+    return segs.length ? segs.map(s => s.label).join(', ') : 'lost all segments';
+  }
+  if (format === 'Stroke Play') {
+    const score = FORMAT_RESULTS['Stroke Play'].scores[pi];
+    return `Net ${score} · ${score <= 72 ? 'under par' : score === 73 ? 'E' : `+${score - 72}`}`;
+  }
+  return '';
+}
+
+function dotsNetForPlayer(pi) {
+  const avgDots = DOTS_DATA.reduce((s,d) => s + d.total, 0) / PLAYERS.length;
+  return Math.round((DOTS_DATA[pi].total - avgDots) * ROUND.dotVal * (PLAYERS.length - 1));
+}
+
+function buildFormatCards() {
+  const container = document.getElementById('format-cards');
+
+  ROUND.formats.forEach((fmt, fi) => {
+    const fData = FORMAT_RESULTS[fmt];
+    if (!fData) return;
+
+    let bodyHtml = '';
+    if (fmt === 'Skins') {
+      bodyHtml = fData.skins.map(s => `
+        <div class="fbc-row">
+          <div class="fbc-row-left">
+            <span style="color:var(--muted)">H${s.hole}</span>
+            <span>${PLAYERS[s.winner].name}</span>
+            <span style="font-size:10px;color:var(--muted)">${s.desc}</span>
+          </div>
+          <div class="fbc-row-val" style="color:var(--gold)">$${s.value}</div>
+        </div>`).join('');
+    } else if (fmt === 'Nassau') {
+      bodyHtml = fData.segments.map(s => `
+        <div class="fbc-row">
+          <div class="fbc-row-left">
+            <span>${s.label}</span>
+            <span style="color:var(--green);font-weight:500">${PLAYERS[s.winner].name} wins</span>
+          </div>
+          <div class="fbc-row-val" style="color:var(--green)">$${s.amount}/player</div>
+        </div>`).join('');
+    } else if (fmt === 'Stroke Play') {
+      const sorted = PLAYERS.map((p,i) => ({...p,i,score:fData.scores[i]})).sort((a,b)=>a.score-b.score);
+      bodyHtml = sorted.map((p,ri) => `
+        <div class="fbc-row">
+          <div class="fbc-row-left">
+            <span style="color:var(--muted)">#${ri+1}</span>
+            <span>${p.name}</span>
+          </div>
+          <div class="fbc-row-val" style="color:${ri===0?'var(--green)':'var(--text)'}">Net ${p.score}</div>
+        </div>`).join('');
+    }
+
+    const card = document.createElement('div');
+    card.className = 'format-breakdown-card';
+    card.style.animationDelay = `${fi * 0.05 + 0.1}s`;
+    card.innerHTML = `
+      <div class="fbc-header" onclick="toggleFmt(this)">
+        <div class="fbc-left">
+          <div class="fbc-icon" style="background:${fData.iconBg}">${fData.icon}</div>
+          <div>
+            <div class="fbc-title">${fmt}</div>
+            <div class="fbc-sub">$${fData.totalPot} total pot · ${fmt === 'Skins' ? fData.skins.length + ' skins played' : fmt === 'Nassau' ? '3 segments' : PLAYERS.length + ' players'}</div>
+          </div>
+        </div>
+        <div>
+          <div class="fbc-total">$${fData.totalPot}</div>
+          <div style="font-size:10px;color:var(--muted);text-align:right;margin-top:2px;">▼</div>
+        </div>
+      </div>
+      <div class="fbc-body">${bodyHtml}</div>`;
+    container.appendChild(card);
+  });
+}
+
+function buildDotsCard() {
+  const sorted = [...DOTS_DATA].sort((a,b) => b.total - a.total);
+  const avgDots = DOTS_DATA.reduce((s,d) => s + d.total, 0) / PLAYERS.length;
+
+  const gridHtml = sorted.map(d => {
+    const p = PLAYERS[d.pi];
+    const net = dotsNetForPlayer(d.pi);
+    return `<div class="dot-player-col">
+      <div class="dot-player-av ${p.av}">${p.initials}</div>
+      <div class="dot-player-name">${p.name.split(' ')[0]}</div>
+      <div class="dot-player-dots">${d.total}</div>
+      <div class="dot-player-val">${net >= 0 ? '+' : ''}$${net}</div>
+    </div>`;
+  }).join('');
+
+  const logHtml = sorted.map(d => {
+    const p = PLAYERS[d.pi];
+    const net = dotsNetForPlayer(d.pi);
+    return `<div class="dot-log-row">
+      <div class="dot-log-left">
+        <div class="gt-av ${p.av}" style="width:22px;height:22px;font-size:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;">${p.initials}</div>
+        ${d.oneputts} one-putt${d.oneputts!==1?'s':''} · ${d.chipins} chip-in${d.chipins!==1?'s':''} · ${d.total} dots @ $${ROUND.dotVal}
+      </div>
+      <div class="dot-log-val ${net >= 0 ? 'dot-log-pos' : 'dot-log-neg'}">${net >= 0 ? '+' : ''}$${Math.abs(net)}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dots-settle-card').innerHTML = `
+    <div class="dots-settle-title">🟢 Dots — After-round card game</div>
+    <div class="dots-settle-grid">${gridHtml}</div>
+    <div class="dots-settle-log">${logHtml}</div>`;
+}
+
+// ── TOGGLE CARDS ──
+function toggleCard(pi) {
+  const header    = document.getElementById(`psc-h-${pi}`);
+  const breakdown = document.getElementById(`psc-b-${pi}`);
+  const isOpen = breakdown.classList.contains('open');
+  breakdown.classList.toggle('open', !isOpen);
+  header.classList.toggle('open', !isOpen);
+}
+
+function toggleFmt(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+  const arrow = header.querySelector('div:last-child div:last-child');
+  if (arrow) arrow.textContent = body.classList.contains('open') ? '▲' : '▼';
+}
+
+// ── VENMO / PAYPAL LINKS ──
+function venmoLink(pi, amount) {
+  const p = PLAYERS[pi];
+  const note = encodeURIComponent(`StrokeStack · ${ROUND.course} · ${ROUND.date}`);
+  // Venmo deep link: venmo://paycharge?txn=pay&recipients=USERNAME&amount=AMT&note=NOTE
+  return `venmo://paycharge?txn=pay&recipients=${p.venmo.replace('@','')}&amount=${amount.toFixed(2)}&note=${note}`;
+}
+
+function paypalLink(pi, amount) {
+  const p = PLAYERS[pi];
+  const note = encodeURIComponent(`StrokeStack · ${ROUND.course}`);
+  return `https://paypal.me/${p.paypal.split('@')[0]}/${amount.toFixed(2)}`;
+}
+
+function markSent(e, pi) {
+  sentPayments.add(pi);
+  setTimeout(() => {
+    const vBtn = document.getElementById(`venmo-${pi}`);
+    if (vBtn) { vBtn.className = 'venmo-btn venmo-sent'; vBtn.textContent = '✓ Payment sent'; }
+    updateSendAllBtn();
+  }, 500);
+}
+
+// ── REQUEST MODAL ──
+function openRequestModal(pi, amount) {
+  currentModalPlayer = pi;
+  const p = PLAYERS[pi];
+  document.getElementById('modal-title').textContent = `Request from ${p.name}`;
+  document.getElementById('modal-sub').textContent = 'Choose how you want to receive payment';
+  document.getElementById('modal-amount').textContent = `$${amount}`;
+  document.getElementById('modal-amount').className = `modal-amount-big pos`;
+  document.getElementById('modal-to').textContent = `${p.venmo} · ${p.paypal}`;
+
+  // Restore venmo/paypal buttons, hide cash confirm
+  document.getElementById('modal-venmo-link').style.display = '';
+  document.getElementById('modal-paypal-link').style.display = '';
+  const cashConfirm = document.getElementById('modal-cash-confirm');
+  if (cashConfirm) cashConfirm.style.display = 'none';
+
+  // Request links (reversed — you request from them)
+  const note = encodeURIComponent(`StrokeStack · ${ROUND.course} · ${ROUND.date}`);
+  document.getElementById('modal-venmo-link').href =
+    `venmo://paycharge?txn=request&recipients=${p.venmo.replace('@','')}&amount=${amount.toFixed(2)}&note=${note}`;
+  document.getElementById('modal-paypal-link').href =
+    `https://www.paypal.com/invoice/create?email=${p.paypal}`;
+
+  document.getElementById('modal').classList.add('show');
+}
+
+function markPaid(e) {
+  if (currentModalPlayer !== null) {
+    sentPayments.add(currentModalPlayer);
+  }
+  setTimeout(() => {
+    closeModal();
+    updateSendAllBtn();
+    showToast('Request sent ✓');
+  }, 400);
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('show');
+  currentModalPlayer = null;
+}
+
+function copyHandle(pi) {
+  const p = PLAYERS[pi];
+  navigator.clipboard?.writeText(p.venmo).catch(()=>{});
+  showToast(`${p.venmo} copied to clipboard`);
+}
+
+// ── SEND ALL ──
+function sendAll() {
+  const owesPlayers = PLAYERS.filter((_,i) => NET_MONEY[i] < 0 && !sentPayments.has(i));
+  if (!owesPlayers.length) {
+    showToast('All payments already sent ✓');
+    return;
+  }
+
+  // Open Venmo for first unpaid player, mark others as initiated
+  owesPlayers.forEach((p, idx) => {
+    const pi = PLAYERS.indexOf(p);
+    sentPayments.add(pi);
+    if (idx === 0) {
+      window.open(venmoLink(pi, Math.abs(NET_MONEY[pi])), '_blank');
+    }
+    const vBtn = document.getElementById(`venmo-${pi}`);
+    if (vBtn) { vBtn.className = 'venmo-btn venmo-sent'; vBtn.textContent = '✓ Sent'; }
+  });
+
+  updateSendAllBtn();
+  showToast(`${owesPlayers.length} Venmo request${owesPlayers.length > 1 ? 's' : ''} initiated ✓`);
+}
+
+function updateSendAllBtn() {
+  const oweCount = PLAYERS.filter((_,i) => NET_MONEY[i] < 0).length;
+  const sentCount = [...sentPayments].filter(i => NET_MONEY[i] < 0).length;
+  const btn = document.getElementById('send-all-btn');
+  const sub = document.getElementById('send-all-sub');
+
+  if (sentCount >= oweCount) {
+    btn.className = 'send-all-btn done';
+    btn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> All payments settled`;
+    sub.textContent = 'Everyone has been notified — great round!';
+  } else {
+    const remaining = oweCount - sentCount;
+    sub.textContent = `${remaining} player${remaining > 1 ? 's' : ''} still owe · tap to send all at once`;
+  }
+}
+
+// ── SHARE ──
+function shareResults() {
+  const winner = PLAYERS[NET_MONEY.indexOf(Math.max(...NET_MONEY))];
+  const text = `StrokeStack · ${ROUND.course} · ${ROUND.date}\n🏆 ${winner.name} won $${Math.max(...NET_MONEY)}\n\nFull results: strokestack.golf/results/SS-4821`;
+  if (navigator.share) {
+    navigator.share({ title: 'StrokeStack Results', text });
+  } else {
+    navigator.clipboard?.writeText(text).catch(()=>{});
+    showToast('Results copied to clipboard');
+  }
+}
+
+// ── CASH PAYMENT ──
+function markCashPaid(pi, amount, name) {
+  // Confirm dialog before marking
+  openCashModal(pi, amount, name, 'pay');
+}
+
+function markCashReceived(pi, amount, name) {
+  openCashModal(pi, amount, name, 'collect');
+}
+
+function openCashModal(pi, amount, name, direction) {
+  currentModalPlayer = pi;
+  const p = PLAYERS[pi];
+
+  if (direction === 'pay') {
+    document.getElementById('modal-title').textContent = `${name} pays cash`;
+    document.getElementById('modal-sub').textContent = `Confirm that ${name} has handed over cash. This marks their balance as settled.`;
+    document.getElementById('modal-amount').textContent = `$${amount}`;
+    document.getElementById('modal-amount').className = 'modal-amount-big neg';
+    document.getElementById('modal-to').textContent = `Cash · no app needed`;
+  } else {
+    document.getElementById('modal-title').textContent = `Cash received from ${name}`;
+    document.getElementById('modal-sub').textContent = `Confirm you received cash from ${name}. This marks their balance as settled.`;
+    document.getElementById('modal-amount').textContent = `+$${amount}`;
+    document.getElementById('modal-amount').className = 'modal-amount-big pos';
+    document.getElementById('modal-to').textContent = `Cash · no app needed`;
+  }
+
+  // Override modal buttons for cash
+  document.getElementById('modal-venmo-link').style.display = 'none';
+  document.getElementById('modal-paypal-link').style.display = 'none';
+
+  // Insert cash confirm button if not already there
+  let cashConfirmBtn = document.getElementById('modal-cash-confirm');
+  if (!cashConfirmBtn) {
+    cashConfirmBtn = document.createElement('button');
+    cashConfirmBtn.id = 'modal-cash-confirm';
+    cashConfirmBtn.className = 'modal-venmo';
+    cashConfirmBtn.style.cssText = 'background:var(--green);color:var(--black);';
+    document.querySelector('.modal-btn-row').insertBefore(
+      cashConfirmBtn,
+      document.querySelector('.modal-cancel')
+    );
+  }
+  cashConfirmBtn.textContent = direction === 'pay' ? '💵 Confirm cash paid' : '💵 Confirm cash received';
+  cashConfirmBtn.onclick = () => confirmCash(pi, amount, direction);
+
+  document.getElementById('modal').classList.add('show');
+}
+
+function confirmCash(pi, amount, direction) {
+  sentPayments.add(pi);
+  closeModal();
+
+  // Update the cash button to show settled
+  const cashBtn = document.getElementById(`cash-${pi}`);
+  if (cashBtn) {
+    cashBtn.className = 'venmo-btn venmo-btn-cash paid';
+    cashBtn.textContent = '✓ Cash settled';
+  }
+
+  // Dim other pay buttons for this player
+  const vBtn = document.getElementById(`venmo-${pi}`);
+  const pBtn = document.getElementById(`paypal-${pi}`);
+  if (vBtn) vBtn.style.opacity = '.35';
+  if (pBtn) pBtn.style.opacity = '.35';
+
+  // Update the player card status line
+  const statusEl = document.querySelector(`#psc-${pi} .psc-status`);
+  if (statusEl) {
+    statusEl.textContent = '✓ Settled in cash';
+    statusEl.style.color = 'var(--green)';
+  }
+
+  updateSendAllBtn();
+  showToast(`${PLAYERS[pi].name} marked as cash settled ✓`);
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
