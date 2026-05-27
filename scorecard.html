@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Live Scorecard — StrokeStack</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black:  #090c0b;
+  --dark:   #0f1512;
+  --card:   #141a17;
+  --card2:  #1a2320;
+  --card3:  #202c28;
+  --green:  #2dcc7e;
+  --green-dim: #1a7d4c;
+  --green-glow: rgba(45,204,126,0.13);
+  --green-border: rgba(45,204,126,0.28);
+  --gold:   #c9a84c;
+  --gold-glow: rgba(201,168,76,0.12);
+  --red:    #f87171;
+  --blue:   #60a5fa;
+  --text:   #edeae2;
+  --muted:  #6b7d74;
+  --border: rgba(255,255,255,0.06);
+  --tab-h:  52px;
+  --nav-h:  56px;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── NOISE ── */
+body::before {
+  content:''; position:fixed; inset:0; z-index:999; pointer-events:none; opacity:.3;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
+
+/* ── TOP NAV ── */
+.top-nav {
+  height: var(--nav-h); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  background: rgba(9,12,11,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index: 50;
+}
+.nav-logo { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.05em; color:var(--text); }
+.nav-logo span { color:var(--green); }
+.nav-center { text-align:center; }
+.nav-round { font-size:12px; font-weight:500; color:var(--text); }
+.nav-code { font-size:10px; color:var(--muted); letter-spacing:.06em; }
+.live-pill {
+  display:flex; align-items:center; gap:5px;
+  font-size:10px; font-weight:500; color:var(--green);
+  background:var(--green-glow); border:1px solid var(--green-border);
+  padding:4px 10px; border-radius:100px;
+}
+.live-dot { width:5px; height:5px; border-radius:50%; background:var(--green); animation:pulse 1.5s ease infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+/* ── HOLE STRIP ── */
+.hole-strip {
+  height: 44px; flex-shrink: 0;
+  display: flex; align-items: center;
+  background: var(--dark);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none; gap: 4px; padding: 0 12px;
+  position: relative; z-index: 40;
+}
+.hole-strip::-webkit-scrollbar { display:none; }
+.hole-pip {
+  flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; flex-direction:column; align-items: center; justify-content:center;
+  font-size: 11px; font-weight:500; cursor:pointer;
+  transition: all .18s; border: 1px solid transparent;
+  position: relative;
+}
+.hole-pip .pip-num { line-height:1; }
+.hole-pip .pip-par { font-size:8px; line-height:1; margin-top:1px; }
+.hp-done  { background:var(--card2); color:var(--muted); border-color:var(--border); }
+.hp-done.has-score { color:var(--green); border-color:var(--green-border); background:rgba(45,204,126,0.06); }
+.hp-active { background:var(--green); color:var(--black); font-weight:500; }
+.hp-todo  { background:transparent; color:var(--muted); border-color:var(--border); opacity:.5; }
+.hole-divider { width:1px; height:20px; background:var(--border); flex-shrink:0; margin:0 4px; }
+
+/* ── TABS ── */
+.tabs {
+  height: var(--tab-h); flex-shrink:0;
+  display: grid; grid-template-columns: repeat(4,1fr);
+  background: var(--dark);
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index: 40;
+}
+.tab {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; font-size:9px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); cursor:pointer; transition:all .2s;
+  border-bottom: 2px solid transparent; position:relative;
+}
+.tab.active { color:var(--green); border-bottom-color:var(--green); }
+.tab svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; }
+.tab-badge {
+  position:absolute; top:6px; right:calc(50% - 16px);
+  background:var(--green); color:var(--black);
+  font-size:8px; font-weight:500; padding:1px 4px; border-radius:100px; min-width:14px; text-align:center;
+}
+
+/* ── PANELS ── */
+.panel-wrap { flex:1; overflow:hidden; position:relative; }
+.panel { position:absolute; inset:0; overflow-y:auto; display:none; }
+.panel.active { display:block; }
+.panel::-webkit-scrollbar { width:3px; }
+.panel::-webkit-scrollbar-track { background:transparent; }
+.panel::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* ── SCORE ENTRY PANEL ── */
+.score-panel { padding:0 0 100px; }
+
+.hole-header {
+  padding:16px 16px 12px;
+  background: linear-gradient(180deg, var(--card) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.hole-info {}
+.hole-big { font-family:'Bebas Neue',sans-serif; font-size:44px; line-height:1; letter-spacing:.02em; color:var(--text); }
+.hole-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+.hole-nav { display:flex; gap:8px; }
+.hole-nav-btn {
+  width:36px; height:36px; border-radius:8px;
+  background:var(--card2); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .18s; color:var(--muted);
+}
+.hole-nav-btn:hover { border-color:var(--green-border); color:var(--green); }
+.hole-nav-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; }
+.hole-nav-btn.disabled { opacity:.3; cursor:not-allowed; }
+
+.score-list { padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+
+.score-row {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; padding:12px 14px;
+  display:grid; grid-template-columns:36px 1fr auto;
+  align-items:center; gap:12px;
+  transition:border-color .2s;
+}
+.score-row.scored { border-color:var(--green-border); }
+
+.sr-avatar {
+  width:36px; height:36px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; flex-shrink:0;
+}
+.av0 { background:rgba(45,204,126,.15); color:var(--green); }
+.av1 { background:rgba(96,165,250,.15); color:var(--blue); }
+.av2 { background:rgba(201,168,76,.15); color:var(--gold); }
+.av3 { background:rgba(248,113,113,.15); color:var(--red); }
+.av4 { background:rgba(167,139,250,.15); color:#a78bfa; }
+.av5 { background:rgba(251,146,60,.15); color:#fb923c; }
+.av6 { background:rgba(34,211,238,.15); color:#22d3ee; }
+.av7 { background:rgba(244,114,182,.15); color:#f472b6; }
+
+.sr-info {}
+.sr-name { font-size:13px; font-weight:500; color:var(--text); }
+.sr-meta { font-size:11px; color:var(--muted); margin-top:1px; }
+.sr-dots-row { display:flex; gap:4px; margin-top:5px; align-items:center; }
+.sr-dots-label { font-size:10px; color:var(--muted); margin-right:2px; }
+.dot-btn {
+  padding:2px 8px; border-radius:6px; font-size:10px; font-weight:500;
+  border:1px solid var(--border); background:var(--card2); color:var(--muted);
+  cursor:pointer; transition:all .15s; font-family:'DM Sans',sans-serif;
+}
+.dot-btn:hover { border-color:var(--gold); color:var(--gold); }
+.dot-btn.active { background:var(--gold-glow); border-color:rgba(201,168,76,.4); color:var(--gold); }
+.dot-chip-btn { }
+.dot-chip-btn.active { background:rgba(248,113,113,.08); border-color:rgba(248,113,113,.4); color:var(--red); }
+
+.sr-score-ctrl { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.score-minus, .score-plus {
+  width:32px; height:32px; border-radius:8px;
+  background:var(--card2); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; cursor:pointer; color:var(--muted);
+  transition:all .15s; user-select:none; line-height:1;
+  font-family:'DM Sans',sans-serif;
+}
+.score-minus:hover { border-color:var(--red); color:var(--red); }
+.score-plus:hover  { border-color:var(--green-border); color:var(--green); }
+.score-val {
+  font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:.02em;
+  color:var(--text); min-width:28px; text-align:center; line-height:1;
+}
+.score-val.birdie { color:var(--green); }
+.score-val.eagle  { color:var(--gold); }
+.score-val.bogey  { color:var(--red); }
+.score-val.double { color:#f87171; }
+.score-val.empty  { color:var(--muted); opacity:.4; }
+
+.confirm-hole-btn {
+  margin:12px; padding:14px;
+  background:var(--green); color:var(--black);
+  border:none; border-radius:10px; cursor:pointer;
+  font-family:'DM Sans',sans-serif; font-size:15px; font-weight:500;
+  width:calc(100% - 24px); transition:all .2s; display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.confirm-hole-btn:hover { background:#3ddc8e; transform:translateY(-1px); }
+.confirm-hole-btn svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; }
+.confirm-hole-btn.all-scored { background:var(--green); }
+.confirm-hole-btn.waiting { background:var(--card2); color:var(--muted); border:1px solid var(--border); cursor:not-allowed; transform:none; }
+
+/* score indicator ring */
+.score-ring {
+  font-size:9px; font-weight:500; letter-spacing:.04em; text-transform:uppercase;
+  padding:2px 6px; border-radius:100px; margin-top:3px; display:inline-block;
+}
+.ring-eagle  { background:rgba(201,168,76,.12); color:var(--gold); border:1px solid rgba(201,168,76,.3); }
+.ring-birdie { background:var(--green-glow); color:var(--green); border:1px solid var(--green-border); }
+.ring-par    { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
+.ring-bogey  { background:rgba(248,113,113,.08); color:var(--red); border:1px solid rgba(248,113,113,.25); }
+.ring-double { background:rgba(248,113,113,.15); color:var(--red); border:1px solid rgba(248,113,113,.4); }
+.ring-empty  { display:none; }
+
+/* ── SCORECARD TABLE PANEL ── */
+.scorecard-panel { padding:12px 10px 100px; }
+.sc-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:10px; padding:0 4px;
+}
+.sc-title { font-size:11px; font-weight:500; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+.sc-course { font-size:13px; font-weight:500; color:var(--green); }
+
+.sc-table-wrap { overflow-x:auto; }
+.sc-table {
+  width:100%; border-collapse:collapse; font-size:11px;
+  font-family:'DM Mono',monospace; min-width:600px;
+}
+.sc-table th {
+  padding:6px 8px; text-align:center;
+  font-size:9px; font-weight:500; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); border-bottom:1px solid var(--border);
+  background:var(--card); position:sticky; top:0; z-index:10;
+}
+.sc-table th:first-child { text-align:left; min-width:80px; }
+.sc-table td {
+  padding:8px 6px; text-align:center; border-bottom:1px solid var(--border);
+  color:var(--text); position:relative;
+}
+.sc-table td:first-child { text-align:left; padding-left:10px; }
+.sc-table tr:hover td { background:var(--card2); }
+.par-row td { color:var(--muted); font-size:10px; background:var(--dark); }
+.par-row td:first-child { color:var(--muted); }
+.sc-subtotal {
+  background:var(--card2); font-weight:500;
+  border-left:2px solid var(--green-border);
+}
+.sc-total { background:rgba(45,204,126,.06); font-weight:500; color:var(--green); }
+.cell-birdie { color:var(--green); }
+.cell-eagle  { color:var(--gold); }
+.cell-bogey  { color:var(--red); }
+.cell-double { color:var(--red); font-weight:500; }
+.cell-empty  { color:var(--muted); opacity:.35; }
+
+/* score circle styles */
+.cell-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; }
+.circle-birdie { border-radius:50%; border:1.5px solid var(--green); }
+.circle-eagle  { border-radius:50%; border:2px solid var(--gold); box-shadow:0 0 6px rgba(201,168,76,.3); }
+.circle-bogey  { border:1.5px solid var(--red); }
+.circle-double { border:2px solid var(--red); }
+
+/* ── STANDINGS PANEL ── */
+.standings-panel { padding:12px 12px 100px; }
+.standings-header { margin-bottom:14px; }
+.standings-title { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:.02em; color:var(--text); line-height:1; }
+.standings-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
+.format-tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; scrollbar-width:none; }
+.format-tabs::-webkit-scrollbar { display:none; }
+.fmt-tab {
+  flex-shrink:0; font-size:11px; font-weight:500;
+  padding:5px 12px; border-radius:100px;
+  border:1px solid var(--border); background:var(--card2);
+  color:var(--muted); cursor:pointer; transition:all .18s;
+  font-family:'DM Sans',sans-serif;
+}
+.fmt-tab.active { background:var(--green-glow); border-color:var(--green-border); color:var(--green); }
+
+.standing-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; padding:14px 16px; margin-bottom:8px;
+  display:grid; grid-template-columns:28px 36px 1fr auto;
+  align-items:center; gap:12px;
+  transition:all .2s; animation:fadeUp .3s ease both;
+}
+.standing-card:nth-child(1) { animation-delay:.05s; }
+.standing-card:nth-child(2) { animation-delay:.1s; }
+.standing-card:nth-child(3) { animation-delay:.15s; }
+.standing-card:nth-child(4) { animation-delay:.2s; }
+.standing-card.rank-1 { border-color:var(--green-border); background:rgba(45,204,126,.04); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+.sc-rank { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--muted); text-align:center; }
+.sc-rank.gold { color:var(--gold); }
+.sc-player-name { font-size:14px; font-weight:500; color:var(--text); }
+.sc-player-detail { font-size:11px; color:var(--muted); margin-top:2px; }
+.sc-money { text-align:right; }
+.sc-amount { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:.03em; }
+.sc-amount.pos { color:var(--green); }
+.sc-amount.neg { color:var(--red); }
+.sc-amount.even { color:var(--muted); }
+.sc-money-label { font-size:10px; color:var(--muted); }
+
+.skins-list { margin-top:16px; }
+.skins-header { font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+.skin-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 0; border-bottom:1px solid var(--border); font-size:12px;
+}
+.skin-row:last-child { border-bottom:none; }
+.skin-hole { color:var(--muted); width:60px; }
+.skin-winner { color:var(--text); font-weight:500; }
+.skin-value { color:var(--gold); font-weight:500; }
+.skin-carried { color:var(--muted); font-style:italic; }
+
+/* ── DOTS PANEL ── */
+.dots-panel { padding:12px 12px 100px; }
+.dots-header { margin-bottom:16px; }
+.dots-title { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:.02em; color:var(--text); line-height:1; }
+.dots-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
+.dots-leaderboard { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+.dot-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; padding:14px 16px;
+  display:grid; grid-template-columns:28px 36px 1fr auto;
+  align-items:center; gap:12px;
+  animation:fadeUp .3s ease both;
+}
+.dot-card.leading { border-color:rgba(201,168,76,.35); background:rgba(201,168,76,.04); }
+.dot-rank { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--muted); text-align:center; }
+.dot-rank.gold { color:var(--gold); }
+.dot-count-wrap { text-align:right; }
+.dot-count { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:.02em; color:var(--gold); }
+.dot-count-label { font-size:10px; color:var(--muted); }
+
+.dots-log { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.dots-log-title { font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.dot-event {
+  display:flex; align-items:center; gap:10px;
+  padding:7px 0; border-bottom:1px solid var(--border); font-size:12px;
+}
+.dot-event:last-child { border-bottom:none; }
+.dot-event-icon { width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+.dei-putt { background:var(--green-glow); }
+.dei-chip { background:var(--gold-glow); }
+.dei-penalty { background:rgba(248,113,113,.08); }
+.dot-event-info { flex:1; color:var(--text); }
+.dot-event-hole { font-size:10px; color:var(--muted); }
+.dot-event-val { font-weight:500; color:var(--gold); }
+.dot-event-val.neg { color:var(--red); }
+
+/* ── FINISH MODAL ── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(9,12,11,.9);
+  backdrop-filter:blur(8px); z-index:200;
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.show { display:flex; animation:fadeIn .3s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:20px; padding:28px; width:100%; max-width:420px;
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.modal-icon { width:56px; height:56px; border-radius:50%; background:var(--green-glow); border:1px solid var(--green-border); display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+.modal-icon svg { width:28px; height:28px; stroke:var(--green); fill:none; stroke-width:1.5; }
+.modal-title { font-family:'Bebas Neue',sans-serif; font-size:40px; letter-spacing:.02em; color:var(--text); margin-bottom:6px; line-height:1; }
+.modal-sub { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:20px; }
+.modal-results { display:flex; flex-direction:column; gap:8px; margin-bottom:24px; }
+.modal-result-row {
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--card2); border-radius:8px; padding:10px 14px;
+}
+.modal-result-name { font-size:13px; color:var(--text); display:flex; align-items:center; gap:8px; }
+.modal-result-amount { font-family:'Bebas Neue',sans-serif; font-size:22px; }
+.modal-result-amount.pos { color:var(--green); }
+.modal-result-amount.neg { color:var(--red); }
+.modal-btns { display:flex; flex-direction:column; gap:8px; }
+.modal-btn-primary {
+  background:var(--green); color:var(--black); border:none;
+  padding:13px; border-radius:10px; font-family:'DM Sans',sans-serif;
+  font-size:14px; font-weight:500; cursor:pointer; transition:all .2s;
+}
+.modal-btn-primary:hover { background:#3ddc8e; }
+.modal-btn-secondary {
+  background:none; color:var(--muted); border:1px solid var(--border);
+  padding:13px; border-radius:10px; font-family:'DM Sans',sans-serif;
+  font-size:14px; cursor:pointer; transition:all .2s;
+}
+.modal-btn-secondary:hover { color:var(--text); border-color:rgba(255,255,255,.15); }
+
+/* ── 3D HOLE VIEW ── */
+.hole3d-panel { display:flex; flex-direction:column; height:100%; overflow-y:auto; }
+.hole3d-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.hole3d-num { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:.03em; color:var(--text); line-height:1; }
+.hole3d-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+.hole3d-nav { display:flex; gap:8px; }
+.canvas-wrap {
+  width:100%; position:relative;
+  background:linear-gradient(180deg,#0a1c10 0%,#061008 100%);
+  overflow:hidden; height:260px; flex-shrink:0;
+}
+#hole3d-canvas { width:100%; height:100%; display:block; }
+.dist-overlay {
+  position:absolute; top:10px; right:10px;
+  background:rgba(9,12,11,.88); backdrop-filter:blur(8px);
+  border:1px solid var(--green-border); border-radius:12px;
+  padding:8px 12px; text-align:center; animation:fadeIn .25s ease;
+}
+.dist-flag { font-size:18px; margin-bottom:1px; }
+.dist-val { font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:.04em; color:var(--green); line-height:1; }
+.dist-label { font-size:9px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+.drag-hint {
+  position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+  font-size:10px; color:rgba(255,255,255,.4); letter-spacing:.04em;
+  background:rgba(0,0,0,.35); padding:3px 10px; border-radius:100px;
+  pointer-events:none; white-space:nowrap; animation:fadeOutHint 5s forwards;
+}
+@keyframes fadeOutHint { 0%,60%{opacity:1} 100%{opacity:0} }
+.dist-markers {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:8px; padding:10px 12px; flex-shrink:0;
+  border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  background:var(--dark);
+}
+.dist-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:8px; text-align:center; }
+.dist-card-mid { border-color:var(--green-border); background:var(--green-glow); }
+.dist-card-yds { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.04em; color:var(--text); }
+.dist-card-mid .dist-card-yds { color:var(--green); }
+.dist-card-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.ball-pos-section { padding:10px 14px 6px; flex-shrink:0; }
+.ball-pos-label { display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; color:var(--muted); }
+.ball-pos-yds { font-weight:500; color:var(--text); }
+.ball-slider {
+  width:100%; height:4px; appearance:none; outline:none;
+  background:var(--card2); border-radius:2px; cursor:pointer;
+}
+.ball-slider::-webkit-slider-thumb { appearance:none; width:20px; height:20px; border-radius:50%; background:var(--green); cursor:pointer; border:2px solid rgba(45,204,126,.4); }
+.ball-slider::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:var(--green); cursor:pointer; border:none; }
+.ball-pos-row { display:flex; justify-content:space-between; margin-top:4px; }
+.shot-distances { display:flex; gap:8px; padding:0 12px 10px; overflow-x:auto; scrollbar-width:none; flex-shrink:0; }
+.shot-distances::-webkit-scrollbar { display:none; }
+.shot-dist-chip {
+  flex-shrink:0; background:var(--card); border:1px solid var(--border);
+  border-radius:100px; padding:5px 12px; display:flex; align-items:center; gap:6px; font-size:11px;
+}
+.shot-dist-chip.recommend { border-color:var(--green-border); background:var(--green-glow); }
+.shot-dist-icon { font-size:13px; }
+.shot-dist-name { color:var(--text); font-weight:500; }
+.shot-dist-yds { color:var(--muted); }
+.shot-dist-chip.recommend .shot-dist-name { color:var(--green); }
+.club-card {
+  display:flex; align-items:center; gap:12px;
+  margin:0 12px 12px; padding:12px 14px;
+  background:var(--card); border:1px solid var(--border); border-radius:10px; flex-shrink:0;
+}
+.club-card-icon { font-size:22px; }
+.club-card-title { font-size:13px; font-weight:500; color:var(--text); margin-bottom:2px; }
+.club-card-sub { font-size:11px; color:var(--muted); line-height:1.4; }
+
+/* end round btn */
+.end-round-btn {
+  position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  background:var(--card); border:1px solid var(--border);
+  color:var(--muted); font-family:'DM Sans',sans-serif; font-size:12px;
+  padding:8px 20px; border-radius:100px; cursor:pointer; z-index:60;
+  transition:all .2s; white-space:nowrap;
+}
+.end-round-btn:hover { border-color:var(--green-border); color:var(--green); }
+
+/* toast */
+.toast {
+  position:fixed; bottom:60px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--card2); border:1px solid var(--green-border);
+  color:var(--green); font-size:13px; font-weight:500;
+  padding:10px 20px; border-radius:100px; z-index:300;
+  opacity:0; transition:all .3s; white-space:nowrap; pointer-events:none;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="top-nav">
+  <div class="nav-logo">S<span>S</span></div>
+  <div class="nav-center">
+    <div class="nav-round" id="nav-round-name">Saturday Nassau</div>
+    <div class="nav-code">Round #SS-4821 · Cape Coral GC</div>
+  </div>
+  <div class="live-pill"><div class="live-dot"></div> Live</div>
+</div>
+
+<!-- HOLE STRIP -->
+<div class="hole-strip" id="hole-strip"></div>
+
+<!-- TABS -->
+<div class="tabs" style="grid-template-columns:repeat(5,1fr)">
+  <div class="tab active" onclick="switchTab('score')" id="tab-score">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M12 14v8"/><path d="M8 18l4 4 4-4"/></svg>
+    Score
+  </div>
+  <div class="tab" onclick="switchTab('card')" id="tab-card">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Card
+  </div>
+  <div class="tab" onclick="switchTab('standings')" id="tab-standings">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Ranks
+    <div class="tab-badge" id="standings-badge">↑</div>
+  </div>
+  <div class="tab" onclick="switchTab('hole3d')" id="tab-hole3d">
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    Hole
+  </div>
+  <div class="tab" onclick="window.location.href='chat.html'" id="tab-chat-link">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Chat
+    <div class="tab-badge" id="chat-badge" style="background:var(--red)">3</div>
+  </div>
+</div>
+
+<!-- PANELS -->
+<div class="panel-wrap">
+
+  <!-- SCORE ENTRY -->
+  <div class="panel active" id="panel-score">
+    <div class="score-panel">
+      <div class="hole-header">
+        <div class="hole-info">
+          <div class="hole-big" id="score-hole-num">HOLE 1</div>
+          <div class="hole-sub" id="score-hole-info">Par 4 · 385 yds · Handicap 7</div>
+        </div>
+        <div class="hole-nav">
+          <div class="hole-nav-btn disabled" id="btn-prev" onclick="changeHole(-1)">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </div>
+          <div class="hole-nav-btn" id="btn-next" onclick="changeHole(1)">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="score-list" id="score-list"></div>
+
+      <button class="confirm-hole-btn waiting" id="confirm-btn" onclick="confirmHole()">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Enter scores to confirm
+      </button>
+    </div>
+  </div>
+
+  <!-- SCORECARD TABLE -->
+  <div class="panel" id="panel-card">
+    <div class="scorecard-panel">
+      <div class="sc-header">
+        <div>
+          <div class="sc-title">Full scorecard</div>
+          <div class="sc-course">Cape Coral Golf Club</div>
+        </div>
+      </div>
+      <div class="sc-table-wrap">
+        <table class="sc-table" id="sc-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- STANDINGS -->
+  <div class="panel" id="panel-standings">
+    <div class="standings-panel">
+      <div class="standings-header">
+        <div class="standings-title">Standings</div>
+        <div class="standings-sub" id="standings-sub">After hole <span id="after-hole">0</span> of 18</div>
+      </div>
+      <div class="format-tabs" id="format-tabs"></div>
+      <div id="standings-list"></div>
+      <div class="skins-list" id="skins-list" style="display:none">
+        <div class="skins-header">Skins tracker</div>
+        <div id="skins-rows"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3D HOLE VIEW -->
+  <div class="panel" id="panel-hole3d">
+    <div class="hole3d-panel">
+      <div class="hole3d-header">
+        <div>
+          <div class="hole3d-num" id="h3d-num">HOLE 1</div>
+          <div class="hole3d-meta" id="h3d-meta">Par 4 · 385 yds · Index 7</div>
+        </div>
+        <div class="hole3d-nav">
+          <div class="hole-nav-btn" id="h3d-prev" onclick="h3dChangeHole(-1)">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </div>
+          <div class="hole-nav-btn" id="h3d-next" onclick="h3dChangeHole(1)">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- CANVAS -->
+      <div class="canvas-wrap">
+        <canvas id="hole3d-canvas"></canvas>
+        <!-- Distance overlay -->
+        <div class="dist-overlay" id="dist-overlay" style="display:none">
+          <div class="dist-flag">⛳</div>
+          <div class="dist-val" id="dist-val">—</div>
+          <div class="dist-label">yds to pin</div>
+        </div>
+        <!-- Drag hint -->
+        <div class="drag-hint" id="drag-hint">Drag to rotate · Pinch to zoom</div>
+      </div>
+
+      <!-- DISTANCE MARKERS -->
+      <div class="dist-markers">
+        <div class="dist-card" id="dm-back">
+          <div class="dist-card-yds" id="dm-back-yds">—</div>
+          <div class="dist-card-label">Back</div>
+        </div>
+        <div class="dist-card dist-card-mid" id="dm-mid">
+          <div class="dist-card-yds" id="dm-mid-yds">—</div>
+          <div class="dist-card-label">Middle</div>
+        </div>
+        <div class="dist-card" id="dm-front">
+          <div class="dist-card-yds" id="dm-front-yds">—</div>
+          <div class="dist-card-label">Front</div>
+        </div>
+      </div>
+
+      <!-- BALL POSITION SLIDER -->
+      <div class="ball-pos-section">
+        <div class="ball-pos-label">
+          <span>Your ball position</span>
+          <span class="ball-pos-yds" id="ball-yds-display">— yds from tee</span>
+        </div>
+        <input type="range" class="ball-slider" id="ball-slider" min="0" max="100" value="0" oninput="updateBallPosition(this.value)">
+        <div class="ball-pos-row">
+          <span style="font-size:11px;color:var(--muted)">Tee</span>
+          <span style="font-size:11px;color:var(--muted)">Green</span>
+        </div>
+      </div>
+
+      <!-- SHOT DISTANCES -->
+      <div class="shot-distances" id="shot-distances"></div>
+
+      <!-- CLUB SUGGESTION -->
+      <div class="club-card" id="club-card">
+        <div class="club-card-icon">🏌️</div>
+        <div>
+          <div class="club-card-title" id="club-title">Select ball position</div>
+          <div class="club-card-sub" id="club-sub">Drag the slider to your ball and see suggested clubs</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOTS -->
+  <div class="panel" id="panel-dots">
+    <div class="dots-panel">
+      <div class="dots-header">
+        <div class="dots-title">Dots</div>
+        <div class="dots-sub">After-round card game tracker · $1/dot</div>
+      </div>
+      <div class="dots-leaderboard" id="dots-leaderboard"></div>
+      <div class="dots-log">
+        <div class="dots-log-title">Dot events log</div>
+        <div id="dots-log-list"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<button class="end-round-btn" onclick="showFinishModal()">End round & settle</button>
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <div class="modal-title">Round complete!</div>
+    <div class="modal-sub">Here's the final breakdown. Settlement requests will be sent automatically via Venmo.</div>
+    <div class="modal-results" id="modal-results"></div>
+    <div class="modal-btns">
+      <button class="modal-btn-primary" onclick="sendSettlement()">💸 Send Venmo requests</button>
+      <button class="modal-btn-secondary" onclick="closeModal()">Back to scorecard</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+const COURSE = {
+  name: 'Cape Coral Golf Club',
+  holes: [
+    {par:4,yds:385,hcp:7},{par:3,yds:162,hcp:15},{par:5,yds:521,hcp:3},
+    {par:4,yds:398,hcp:1},{par:4,yds:356,hcp:11},{par:3,yds:178,hcp:17},
+    {par:5,yds:508,hcp:5},{par:4,yds:412,hcp:9},{par:4,yds:367,hcp:13},
+    {par:4,yds:394,hcp:8},{par:3,yds:155,hcp:16},{par:5,yds:534,hcp:2},
+    {par:4,yds:401,hcp:4},{par:4,yds:369,hcp:12},{par:3,yds:186,hcp:18},
+    {par:5,yds:512,hcp:6},{par:4,yds:388,hcp:10},{par:4,yds:421,hcp:14}
+  ]
+};
+
+const PLAYERS = [
+  {name:'Mike R.', hcp:12, av:'av0', initials:'MR'},
+  {name:'Jake T.', hcp:6,  av:'av1', initials:'JT'},
+  {name:'Dan S.',  hcp:18, av:'av2', initials:'DS'},
+  {name:'Chris L.',hcp:22, av:'av3', initials:'CL'},
+];
+
+// ── CLUB BAG (loaded from profile) ──
+const DEFAULT_CLUBS = [
+  {name:'Driver',dist:230,icon:'🏌️'},{name:'3-Wood',dist:210,icon:'🪵'},
+  {name:'5-Wood',dist:195,icon:'🪵'},{name:'4-Hybrid',dist:175,icon:'🔀'},
+  {name:'5-Iron',dist:162,icon:'🔩'},{name:'6-Iron',dist:150,icon:'🔩'},
+  {name:'7-Iron',dist:138,icon:'🔩'},{name:'8-Iron',dist:126,icon:'🔩'},
+  {name:'9-Iron',dist:114,icon:'🔩'},{name:'PW',dist:104,icon:'⛏️'},
+  {name:'GW',dist:92,icon:'⛏️'},{name:'SW',dist:80,icon:'⛏️'},
+  {name:'LW',dist:65,icon:'⛏️'},
+];
+
+function loadPlayerBag() {
+  try {
+    const saved = localStorage.getItem('strokestack_clubs');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.length > 0) return parsed;
+    }
+  } catch(e) {}
+  return DEFAULT_CLUBS;
+}
+
+let PLAYER_BAG = loadPlayerBag();
+const STAKE = 5;
+const DOT_VAL = 1;
+const TOTAL_HOLES = 18;
+
+// scores[hole][player] = gross score (0 = not entered)
+let scores = Array.from({length:TOTAL_HOLES}, () => Array(PLAYERS.length).fill(0));
+// dots[player] = {oneputts:[], chipins:[]}
+let dots = PLAYERS.map(()=>({oneputts:[], chipins:[], total:0}));
+let dotEvents = [];
+let currentHole = 0; // 0-indexed
+let currentTab = 'score';
+let currentFormat = 'Skins';
+
+// ── INIT ──
+function init() {
+  buildHoleStrip();
+  buildScoreList();
+  buildScorecardTable();
+  buildFormatTabs();
+  renderStandings();
+  renderDots();
+  updateHoleHeader();
+}
+
+// ── HOLE STRIP ──
+function buildHoleStrip() {
+  const strip = document.getElementById('hole-strip');
+  strip.innerHTML = '';
+  for (let i = 0; i < TOTAL_HOLES; i++) {
+    if (i === 9) {
+      const div = document.createElement('div');
+      div.className = 'hole-divider'; strip.appendChild(div);
+    }
+    const pip = document.createElement('div');
+    const hasScore = scores[i].every(s => s > 0);
+    pip.className = `hole-pip ${i === currentHole ? 'hp-active' : hasScore ? 'hp-done has-score' : i < currentHole ? 'hp-done' : 'hp-todo'}`;
+    pip.innerHTML = `<div class="pip-num">${i+1}</div><div class="pip-par">P${COURSE.holes[i].par}</div>`;
+    pip.onclick = () => { currentHole = i; buildHoleStrip(); buildScoreList(); updateHoleHeader(); updateConfirmBtn(); switchHoleNavBtns(); };
+    strip.appendChild(pip);
+  }
+  // scroll active into view
+  const active = strip.querySelector('.hp-active');
+  if (active) active.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'});
+}
+
+// ── HOLE HEADER ──
+function updateHoleHeader() {
+  const h = COURSE.holes[currentHole];
+  document.getElementById('score-hole-num').textContent = `HOLE ${currentHole + 1}`;
+  document.getElementById('score-hole-info').textContent = `Par ${h.par} · ${h.yds} yds · Stroke index ${h.hcp}`;
+  switchHoleNavBtns();
+}
+
+function switchHoleNavBtns() {
+  document.getElementById('btn-prev').classList.toggle('disabled', currentHole === 0);
+  document.getElementById('btn-next').classList.toggle('disabled', currentHole === TOTAL_HOLES - 1);
+}
+
+function changeHole(dir) {
+  const next = currentHole + dir;
+  if (next < 0 || next >= TOTAL_HOLES) return;
+  currentHole = next;
+  buildHoleStrip();
+  buildScoreList();
+  updateHoleHeader();
+  updateConfirmBtn();
+}
+
+// ── SCORE LIST ──
+function buildScoreList() {
+  const list = document.getElementById('score-list');
+  const h = COURSE.holes[currentHole];
+  list.innerHTML = '';
+
+  PLAYERS.forEach((p, pi) => {
+    const strokes = getHandicapStrokes(p.hcp, currentHole);
+    const gross = scores[currentHole][pi];
+    const net = gross > 0 ? gross - strokes : 0;
+
+    const row = document.createElement('div');
+    row.className = `score-row${gross > 0 ? ' scored' : ''}`;
+    row.id = `score-row-${pi}`;
+
+    const scoreClass = gross === 0 ? 'empty' : gross - strokes === h.par - 2 ? 'eagle' : gross - strokes === h.par - 1 ? 'birdie' : gross - strokes === h.par ? '' : gross - strokes === h.par + 1 ? 'bogey' : 'double';
+    const ringClass  = gross === 0 ? 'empty' : gross - strokes === h.par - 2 ? 'eagle' : gross - strokes === h.par - 1 ? 'birdie' : gross - strokes === h.par ? 'par' : gross - strokes === h.par + 1 ? 'bogey' : 'double';
+    const ringLabel  = gross === 0 ? '' : gross - strokes === h.par - 2 ? 'Eagle' : gross - strokes === h.par - 1 ? 'Birdie' : gross - strokes === h.par ? 'Par' : gross - strokes === h.par + 1 ? 'Bogey' : 'Double+';
+
+    const onePuttActive = dots[pi].oneputts.includes(currentHole);
+    const chipInActive  = dots[pi].chipins.includes(currentHole);
+
+    row.innerHTML = `
+      <div class="sr-avatar ${p.av}">${p.initials}</div>
+      <div class="sr-info">
+        <div class="sr-name">${p.name}</div>
+        <div class="sr-meta">HCP ${p.hcp} · ${strokes > 0 ? `+${strokes} stroke${strokes>1?'s':''}` : 'Scratch'}</div>
+        ${gross > 0 ? `<div class="score-ring ring-${ringClass}">${ringLabel}</div>` : ''}
+        <div class="sr-dots-row">
+          <span class="sr-dots-label">Dots:</span>
+          <button class="dot-btn ${onePuttActive?'active':''}" onclick="toggleOnePutt(${pi})" title="One-putt">🟢 1-putt</button>
+          <button class="dot-btn dot-chip-btn ${chipInActive?'active':''}" onclick="toggleChipIn(${pi})" title="Chip-in / Hole out">⭐ Chip-in</button>
+        </div>
+      </div>
+      <div class="sr-score-ctrl">
+        <div class="score-minus" onclick="adjustScore(${pi}, -1)">−</div>
+        <div class="score-val ${scoreClass}" id="sv-${pi}">${gross > 0 ? gross : '—'}</div>
+        <div class="score-plus" onclick="adjustScore(${pi}, 1)">+</div>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+function adjustScore(pi, dir) {
+  const h = COURSE.holes[currentHole];
+  const cur = scores[currentHole][pi];
+  const next = Math.max(1, Math.min(15, cur + dir));
+  if (cur === 0 && dir < 0) return;
+  scores[currentHole][pi] = cur === 0 ? h.par : next;
+  buildScoreList();
+  updateConfirmBtn();
+  renderScorecardTable();
+}
+
+function updateConfirmBtn() {
+  const btn = document.getElementById('confirm-btn');
+  const allScored = scores[currentHole].every(s => s > 0);
+  const confirmed = scores[currentHole]._confirmed;
+  if (confirmed) {
+    btn.className = 'confirm-hole-btn all-scored';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Hole ${currentHole+1} confirmed`;
+  } else if (allScored) {
+    btn.className = 'confirm-hole-btn all-scored';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Confirm hole ${currentHole+1}`;
+  } else {
+    btn.className = 'confirm-hole-btn waiting';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Enter scores to confirm`;
+  }
+}
+
+function confirmHole() {
+  if (!scores[currentHole].every(s => s > 0)) return;
+  scores[currentHole]._confirmed = true;
+  updateConfirmBtn();
+  buildHoleStrip();
+  renderStandings();
+  renderDots();
+  renderScorecardTable();
+  showToast(`Hole ${currentHole + 1} confirmed ✓`);
+  if (currentHole < TOTAL_HOLES - 1) {
+    setTimeout(() => { changeHole(1); }, 600);
+  }
+  document.getElementById('after-hole').textContent = scores.filter(h=>h._confirmed).length;
+}
+
+// ── DOTS ──
+function toggleOnePutt(pi) {
+  const holeIdx = currentHole;
+  const inList = dots[pi].oneputts.includes(holeIdx);
+  if (inList) {
+    dots[pi].oneputts = dots[pi].oneputts.filter(h => h !== holeIdx);
+    dotEvents = dotEvents.filter(e => !(e.pi===pi && e.hole===holeIdx && e.type==='oneputt'));
+    dots[pi].total = Math.max(0, dots[pi].total - 1);
+  } else {
+    dots[pi].oneputts.push(holeIdx);
+    dotEvents.push({pi, hole:holeIdx, type:'oneputt', val:1});
+    dots[pi].total += 1;
+  }
+  buildScoreList();
+  renderDots();
+  updateDotsBadge();
+}
+
+function toggleChipIn(pi) {
+  const holeIdx = currentHole;
+  const inList = dots[pi].chipins.includes(holeIdx);
+  if (inList) {
+    dots[pi].chipins = dots[pi].chipins.filter(h => h !== holeIdx);
+    dotEvents = dotEvents.filter(e => !(e.pi===pi && e.hole===holeIdx && e.type==='chipin'));
+    dots[pi].total = Math.max(0, dots[pi].total - 2);
+  } else {
+    dots[pi].chipins.push(holeIdx);
+    dotEvents.push({pi, hole:holeIdx, type:'chipin', val:2});
+    dots[pi].total += 2;
+  }
+  buildScoreList();
+  renderDots();
+  updateDotsBadge();
+}
+
+function updateDotsBadge() {
+  const total = dots.reduce((s,d)=>s+d.total,0);
+  const badge = document.getElementById('dots-badge');
+  if (total > 0) { badge.style.display='block'; badge.textContent=total; }
+  else badge.style.display='none';
+}
+
+function renderDots() {
+  const sorted = [...PLAYERS.map((p,i)=>({...p,i,total:dots[i].total}))].sort((a,b)=>b.total-a.total);
+  const maxDots = Math.max(...sorted.map(p=>p.total), 1);
+
+  document.getElementById('dots-leaderboard').innerHTML = sorted.map((p,ri) => `
+    <div class="dot-card ${ri===0&&p.total>0?'leading':''}">
+      <div class="dot-rank ${ri===0&&p.total>0?'gold':''}">${ri+1}</div>
+      <div class="sr-avatar ${p.av}">${p.initials}</div>
+      <div>
+        <div class="sc-player-name">${p.name}</div>
+        <div class="sc-player-detail">
+          ${dots[p.i].oneputts.length} one-putt${dots[p.i].oneputts.length!==1?'s':''} · ${dots[p.i].chipins.length} chip-in${dots[p.i].chipins.length!==1?'s':''}
+          ${p.total > 0 ? ` · <span style="color:var(--gold)">$${(p.total * DOT_VAL).toFixed(2)} value</span>` : ''}
+        </div>
+      </div>
+      <div class="dot-count-wrap">
+        <div class="dot-count">${p.total}</div>
+        <div class="dot-count-label">dot${p.total!==1?'s':''}</div>
+      </div>
+    </div>`).join('');
+
+  const logHtml = [...dotEvents].reverse().map(e => {
+    const p = PLAYERS[e.pi];
+    const h = COURSE.holes[e.hole];
+    const isChip = e.type === 'chipin';
+    return `<div class="dot-event">
+      <div class="dot-event-icon ${isChip?'dei-chip':'dei-putt'}">${isChip?'⭐':'🟢'}</div>
+      <div class="dot-event-info">
+        <div style="font-weight:500">${p.name} — ${isChip?'Chip-in':'One-putt'}</div>
+        <div class="dot-event-hole">Hole ${e.hole+1} · Par ${h.par}</div>
+      </div>
+      <div class="dot-event-val">+${e.val} dot${e.val>1?'s':''}</div>
+    </div>`;
+  }).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No dots recorded yet — tap 🟢 or ⭐ on the score screen.</div>';
+  document.getElementById('dots-log-list').innerHTML = logHtml;
+}
+
+// ── HANDICAP ──
+function getHandicapStrokes(hcp, holeIdx) {
+  const si = COURSE.holes[holeIdx].hcp;
+  const full = Math.floor(hcp / 18);
+  const extra = hcp % 18;
+  return full + (extra >= si ? 1 : 0);
+}
+
+// ── SCORECARD TABLE ──
+function buildScorecardTable() { renderScorecardTable(); }
+
+function renderScorecardTable() {
+  const table = document.getElementById('sc-table');
+  const nines = [[0,8],[9,17]];
+
+  let html = '<thead><tr><th>Player</th>';
+  for (let i=0;i<9;i++) html+=`<th>${i+1}</th>`;
+  html+=`<th class="sc-subtotal">OUT</th>`;
+  for (let i=9;i<18;i++) html+=`<th>${i+1}</th>`;
+  html+=`<th class="sc-subtotal">IN</th><th class="sc-total">TOT</th></tr>`;
+
+  html+=`<tr class="par-row"><td>Par</td>`;
+  let outPar=0, inPar=0;
+  for(let i=0;i<9;i++){outPar+=COURSE.holes[i].par; html+=`<td>${COURSE.holes[i].par}</td>`;}
+  html+=`<td class="sc-subtotal">${outPar}</td>`;
+  for(let i=9;i<18;i++){inPar+=COURSE.holes[i].par; html+=`<td>${COURSE.holes[i].par}</td>`;}
+  html+=`<td class="sc-subtotal">${inPar}</td><td class="sc-total">${outPar+inPar}</td></tr></thead><tbody>`;
+
+  PLAYERS.forEach((p, pi) => {
+    html+=`<tr><td><div style="display:flex;align-items:center;gap:6px"><div class="sr-avatar ${p.av}" style="width:20px;height:20px;font-size:8px;flex-shrink:0">${p.initials}</div>${p.name}</div></td>`;
+    let outScore=0, inScore=0;
+    for(let i=0;i<9;i++){
+      const s=scores[i][pi]; const h=COURSE.holes[i];
+      const net=s>0?s-getHandicapStrokes(p.hcp,i):0;
+      const cls=s===0?'cell-empty':net===h.par-2?'cell-eagle':net===h.par-1?'cell-birdie':net===h.par+1?'cell-bogey':net>h.par+1?'cell-double':'';
+      outScore+=s;
+      html+=`<td class="${cls}">${s||'·'}</td>`;
+    }
+    html+=`<td class="sc-subtotal">${outScore||'—'}</td>`;
+    for(let i=9;i<18;i++){
+      const s=scores[i][pi]; const h=COURSE.holes[i];
+      const net=s>0?s-getHandicapStrokes(p.hcp,i):0;
+      const cls=s===0?'cell-empty':net===h.par-2?'cell-eagle':net===h.par-1?'cell-birdie':net===h.par+1?'cell-bogey':net>h.par+1?'cell-double':'';
+      inScore+=s;
+      html+=`<td class="${cls}">${s||'·'}</td>`;
+    }
+    const tot=outScore+inScore;
+    html+=`<td class="sc-subtotal">${inScore||'—'}</td><td class="sc-total">${tot||'—'}</td></tr>`;
+  });
+  html+='</tbody>';
+  table.innerHTML=html;
+}
+
+// ── STANDINGS ──
+function buildFormatTabs() {
+  const container = document.getElementById('format-tabs');
+  FORMATS.forEach(f => {
+    const btn = document.createElement('div');
+    btn.className = `fmt-tab${f===currentFormat?' active':''}`;
+    btn.textContent = f;
+    btn.onclick = () => { currentFormat=f; document.querySelectorAll('.fmt-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderStandings(); };
+    container.appendChild(btn);
+  });
+}
+
+function renderStandings() {
+  const container = document.getElementById('standings-list');
+  const skinsContainer = document.getElementById('skins-list');
+  const confirmedHoles = scores.filter(h=>h._confirmed).length;
+  document.getElementById('after-hole').textContent = confirmedHoles;
+
+  if (currentFormat === 'Skins') {
+    skinsContainer.style.display = 'block';
+    container.innerHTML = '';
+    renderSkinsStandings();
+  } else if (currentFormat === 'Nassau') {
+    skinsContainer.style.display = 'none';
+    renderNassauStandings(container);
+  } else if (currentFormat === 'Dots') {
+    skinsContainer.style.display = 'none';
+    renderDotsStandings(container);
+  }
+}
+
+function renderSkinsStandings(container) {
+  // calculate skins
+  let skinsPot = 0, skinsCarry = 0;
+  let playerSkins = PLAYERS.map(() => ({skins:0, value:0}));
+  const skinRows = [];
+
+  for (let i=0;i<TOTAL_HOLES;i++) {
+    if (!scores[i]._confirmed) { skinsCarry++; continue; }
+    const netScores = PLAYERS.map((p,pi) => scores[i][pi] - getHandicapStrokes(p.hcp, i));
+    const best = Math.min(...netScores);
+    const winners = netScores.reduce((acc,s,pi)=>s===best?[...acc,pi]:acc,[]);
+    const holeVal = (skinsCarry + 1) * STAKE;
+    if (winners.length === 1) {
+      playerSkins[winners[0]].skins++;
+      playerSkins[winners[0]].value += holeVal;
+      skinRows.push({hole:i+1, winner:PLAYERS[winners[0]].name, value:holeVal, carry:skinsCarry});
+      skinsCarry = 0;
+    } else {
+      skinRows.push({hole:i+1, winner:null, value:holeVal, carry:skinsCarry});
+      skinsCarry++;
+    }
+  }
+
+  const sorted = PLAYERS.map((p,i)=>({...p,i,...playerSkins[i]})).sort((a,b)=>b.value-a.value);
+  document.getElementById('standings-list').innerHTML = sorted.map((p,ri) => `
+    <div class="standing-card ${ri===0&&p.value>0?'rank-1':''}">
+      <div class="sc-rank ${ri===0&&p.value>0?'gold':''}">${ri+1}</div>
+      <div class="sr-avatar ${p.av}">${p.initials}</div>
+      <div>
+        <div class="sc-player-name">${p.name}</div>
+        <div class="sc-player-detail">${p.skins} skin${p.skins!==1?'s':''} won</div>
+      </div>
+      <div class="sc-money">
+        <div class="sc-amount ${p.value>0?'pos':'even'}">$${p.value}</div>
+        <div class="sc-money-label">earned</div>
+      </div>
+    </div>`).join('');
+
+  // skin rows
+  const pendingVal = (skinsCarry) * STAKE;
+  document.getElementById('skins-rows').innerHTML = skinRows.map(r => `
+    <div class="skin-row">
+      <div class="skin-hole">Hole ${r.hole}${r.carry>0?' ('+r.carry+' carried)':''}</div>
+      <div class="skin-winner ${r.winner?'':'skin-carried'}">${r.winner||'Tied — carries over'}</div>
+      <div class="skin-value ${r.winner?'':'skin-carried'}">$${r.value}</div>
+    </div>`).join('') + (skinsCarry > 0 ? `<div class="skin-row"><div class="skin-hole">Pot</div><div class="skin-winner" style="color:var(--gold)">${skinsCarry} holes carried</div><div class="skin-value" style="color:var(--gold)">$${pendingVal} pending</div></div>` : '');
+}
+
+function renderNassauStandings(container) {
+  const net = (pi, holeIdx) => {
+    const s = scores[holeIdx][pi];
+    return s > 0 ? s - getHandicapStrokes(PLAYERS[pi].hcp, holeIdx) : null;
+  };
+
+  const money = PLAYERS.map(() => 0);
+  const segments = [{start:0,end:8,label:'Front 9'},{start:9,end:17,label:'Back 9'}];
+
+  segments.forEach(seg => {
+    let wins = PLAYERS.map(()=>0);
+    for (let i=seg.start;i<=seg.end;i++) {
+      if (!scores[i]._confirmed) continue;
+      const nets = PLAYERS.map((_,pi)=>net(pi,i));
+      if (nets.some(n=>n===null)) continue;
+      const best = Math.min(...nets);
+      const w = nets.findIndex(n=>n===best);
+      wins[w]++;
+    }
+    // simple winner takes STAKE from each other
+    const winner = wins.indexOf(Math.max(...wins));
+    if (Math.max(...wins) > 0) {
+      PLAYERS.forEach((_,pi) => { if (pi!==winner) { money[pi]-=STAKE; money[winner]+=STAKE; } });
+    }
+  });
+
+  const sorted = PLAYERS.map((p,i)=>({...p,i,money:money[i]})).sort((a,b)=>b.money-a.money);
+  container.innerHTML = sorted.map((p,ri) => `
+    <div class="standing-card ${ri===0&&p.money>0?'rank-1':''}">
+      <div class="sc-rank ${ri===0&&p.money>0?'gold':''}">${ri+1}</div>
+      <div class="sr-avatar ${p.av}">${p.initials}</div>
+      <div>
+        <div class="sc-player-name">${p.name}</div>
+        <div class="sc-player-detail">HCP ${p.hcp}</div>
+      </div>
+      <div class="sc-money">
+        <div class="sc-amount ${p.money>0?'pos':p.money<0?'neg':'even'}">${p.money>=0?'+':''}$${Math.abs(p.money)}</div>
+        <div class="sc-money-label">${p.money>=0?'up':'down'}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderDotsStandings(container) {
+  const sorted = PLAYERS.map((p,i)=>({...p,i,total:dots[i].total})).sort((a,b)=>b.total-a.total);
+  const max = Math.max(...sorted.map(p=>p.total),1);
+  container.innerHTML = sorted.map((p,ri) => `
+    <div class="standing-card ${ri===0&&p.total>0?'rank-1':''}">
+      <div class="sc-rank ${ri===0&&p.total>0?'gold':''}">${ri+1}</div>
+      <div class="sr-avatar ${p.av}">${p.initials}</div>
+      <div>
+        <div class="sc-player-name">${p.name}</div>
+        <div class="sc-player-detail">${p.total} dot${p.total!==1?'s':''} · $${(p.total*DOT_VAL).toFixed(2)} value</div>
+      </div>
+      <div class="sc-money">
+        <div class="sc-amount ${p.total>0?'pos':'even'}">$${(p.total*DOT_VAL*(PLAYERS.length-1)).toFixed(0)}</div>
+        <div class="sc-money-label">potential win</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── 3D HOLE VIEW ──
+const HOLE_SHAPES = [
+  {shape:'straight', dogleg:0, hazards:['bunker-right','bunker-green-left'], water:false},
+  {shape:'straight', dogleg:0, hazards:['bunker-green-both'], water:false},
+  {shape:'dogleg-left', dogleg:-0.3, hazards:['water-left'], water:true},
+  {shape:'dogleg-right', dogleg:0.35, hazards:['bunker-fairway-right'], water:false},
+  {shape:'straight', dogleg:0, hazards:['bunker-green-right'], water:false},
+  {shape:'straight', dogleg:0, hazards:['bunker-both'], water:false},
+  {shape:'dogleg-left', dogleg:-0.25, hazards:['water-right'], water:true},
+  {shape:'straight', dogleg:0.1, hazards:['bunker-fairway-left'], water:false},
+  {shape:'dogleg-right', dogleg:0.2, hazards:['bunker-green-left'], water:false},
+  {shape:'straight', dogleg:0, hazards:['bunker-right'], water:false},
+  {shape:'straight', dogleg:0, hazards:['water-front'], water:true},
+  {shape:'dogleg-left', dogleg:-0.3, hazards:['bunker-fairway-both'], water:false},
+  {shape:'straight', dogleg:0.15, hazards:['bunker-green-both'], water:false},
+  {shape:'dogleg-right', dogleg:0.28, hazards:['water-right'], water:true},
+  {shape:'straight', dogleg:0, hazards:['bunker-both'], water:false},
+  {shape:'dogleg-left', dogleg:-0.2, hazards:['water-left'], water:true},
+  {shape:'straight', dogleg:0, hazards:['bunker-fairway-right'], water:false},
+  {shape:'dogleg-right', dogleg:0.3, hazards:['bunker-green-left'], water:false},
+];
+
+let h3dHole = 0;
+let ballPct  = 0;
+let h3dAnimFrame = null;
+let h3dCanvas, h3dCtx;
+let camAngle = 0.35; // radians from top-down
+let camRot   = 0;    // horizontal rotation
+let dragStart= null;
+let lastTouch= null;
+let zoomLevel= 1;
+
+function initH3D() {
+  h3dCanvas = document.getElementById('hole3d-canvas');
+  h3dCtx    = h3dCanvas.getContext('2d');
+  resizeCanvas();
+  attachH3DEvents();
+  renderH3D();
+  updateDistMarkers();
+  updateBallPosition(0);
+}
+
+function resizeCanvas() {
+  const wrap = h3dCanvas.parentElement;
+  h3dCanvas.width  = wrap.clientWidth  * devicePixelRatio;
+  h3dCanvas.height = wrap.clientHeight * devicePixelRatio;
+  h3dCanvas.style.width  = wrap.clientWidth  + 'px';
+  h3dCanvas.style.height = wrap.clientHeight + 'px';
+}
+
+function attachH3DEvents() {
+  // Mouse drag
+  h3dCanvas.addEventListener('mousedown', e => { dragStart={x:e.clientX, y:e.clientY, rot:camRot, angle:camAngle}; });
+  window.addEventListener('mousemove', e => {
+    if (!dragStart) return;
+    camRot   = dragStart.rot   + (e.clientX - dragStart.x) * 0.008;
+    camAngle = Math.max(0.1, Math.min(1.2, dragStart.angle + (e.clientY - dragStart.y) * 0.006));
+    renderH3D();
+  });
+  window.addEventListener('mouseup', () => { dragStart = null; });
+  // Touch drag
+  h3dCanvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) { const t=e.touches[0]; dragStart={x:t.clientX,y:t.clientY,rot:camRot,angle:camAngle}; }
+    lastTouch = e.touches;
+  }, {passive:true});
+  h3dCanvas.addEventListener('touchmove', e => {
+    if (e.touches.length === 1 && dragStart) {
+      const t=e.touches[0];
+      camRot   = dragStart.rot   + (t.clientX - dragStart.x) * 0.009;
+      camAngle = Math.max(0.1, Math.min(1.2, dragStart.angle + (t.clientY - dragStart.y) * 0.007));
+      renderH3D();
+    }
+    lastTouch = e.touches;
+  }, {passive:true});
+  h3dCanvas.addEventListener('touchend', () => { dragStart=null; });
+  // Pinch zoom
+  h3dCanvas.addEventListener('wheel', e => { zoomLevel = Math.max(0.5, Math.min(2.5, zoomLevel - e.deltaY*0.001)); renderH3D(); }, {passive:true});
+}
+
+function h3dChangeHole(dir) {
+  h3dHole = Math.max(0, Math.min(TOTAL_HOLES - 1, h3dHole + dir));
+  ballPct = 0;
+  document.getElementById('ball-slider').value = 0;
+  renderH3D();
+  updateH3DHeader();
+  updateDistMarkers();
+  updateBallPosition(0);
+  document.getElementById('drag-hint').style.display='block';
+}
+
+function updateH3DHeader() {
+  const h = COURSE.holes[h3dHole];
+  document.getElementById('h3d-num').textContent  = `HOLE ${h3dHole+1}`;
+  document.getElementById('h3d-meta').textContent = `Par ${h.par} · ${h.yds} yds · Index ${h.hcp}`;
+  document.getElementById('h3d-prev').classList.toggle('disabled', h3dHole===0);
+  document.getElementById('h3d-next').classList.toggle('disabled', h3dHole===TOTAL_HOLES-1);
+}
+
+function updateDistMarkers() {
+  const h = COURSE.holes[h3dHole];
+  document.getElementById('dm-back-yds').textContent  = h.yds + 15;
+  document.getElementById('dm-mid-yds').textContent   = h.yds;
+  document.getElementById('dm-front-yds').textContent = Math.max(h.yds - 15, h.yds - 20);
+}
+
+function updateBallPosition(pct) {
+  ballPct = parseInt(pct) / 100;
+  const h = COURSE.holes[h3dHole];
+  const ydsFromTee = Math.round(ballPct * h.yds);
+  const ydsToPin   = h.yds - ydsFromTee;
+  document.getElementById('ball-yds-display').textContent = ydsFromTee > 0 ? `${ydsFromTee} yds from tee` : '— yds from tee';
+
+  const overlay = document.getElementById('dist-overlay');
+  if (ydsFromTee > 0) {
+    overlay.style.display = 'block';
+    document.getElementById('dist-val').textContent = ydsToPin;
+  } else {
+    overlay.style.display = 'none';
+  }
+
+  renderH3D();
+  updateClubSuggestion(ydsToPin, ydsFromTee);
+}
+
+function updateClubSuggestion(ydsToPin, ydsFromTee) {
+  const clubs = PLAYER_BAG;
+
+  if (ydsFromTee === 0) {
+    document.getElementById('shot-distances').innerHTML = '';
+    document.getElementById('club-title').textContent = 'Set your ball position';
+    document.getElementById('club-sub').textContent   = 'Drag the slider to your ball location';
+    document.getElementById('club-card').style.borderColor = 'var(--border)';
+    return;
+  }
+
+  if (!clubs.length) {
+    document.getElementById('club-title').textContent = 'Set up your bag first';
+    document.getElementById('club-sub').innerHTML = '<a href="profile.html" style="color:var(--green)">Go to My Bag →</a> to enter your club distances';
+    return;
+  }
+
+  const best = clubs.reduce((prev, cur) =>
+    Math.abs(cur.dist - ydsToPin) < Math.abs(prev.dist - ydsToPin) ? cur : prev
+  );
+  const nearby = clubs.filter(c => Math.abs(c.dist - ydsToPin) <= 35 && c.name !== best.name);
+
+  document.getElementById('club-title').textContent = `${best.icon} ${best.name} recommended`;
+  document.getElementById('club-sub').textContent   = `${ydsToPin} yds to pin · your ${best.dist}yd carry`;
+  document.getElementById('club-card').style.borderColor = 'var(--green-border)';
+
+  const chips = [best, ...nearby].slice(0,6).map((c,i) =>
+    `<div class="shot-dist-chip ${i===0?'recommend':''}">
+      <span class="shot-dist-icon">${c.icon}</span>
+      <span class="shot-dist-name">${c.name}</span>
+      <span class="shot-dist-yds">${c.dist}y</span>
+    </div>`).join('');
+  document.getElementById('shot-distances').innerHTML = chips;
+}
+
+// ── 3D RENDERER (Canvas 2D isometric) ──
+function renderH3D() {
+  if (!h3dCanvas) return;
+  const cv = h3dCanvas, cx = h3dCtx;
+  const W = cv.width, H = cv.height;
+  const dpr = devicePixelRatio;
+  const hole = COURSE.holes[h3dHole];
+  const shape = HOLE_SHAPES[h3dHole];
+
+  cx.clearRect(0, 0, W, H);
+
+  // Sky gradient
+  const sky = cx.createLinearGradient(0, 0, 0, H * 0.45);
+  sky.addColorStop(0, '#091c10');
+  sky.addColorStop(1, '#0d2a18');
+  cx.fillStyle = sky;
+  cx.fillRect(0, 0, W, H);
+
+  // Ground fog
+  const fog = cx.createLinearGradient(0, H * 0.4, 0, H);
+  fog.addColorStop(0, 'rgba(10,20,14,0)');
+  fog.addColorStop(1, 'rgba(6,16,10,0.7)');
+  cx.fillStyle = fog;
+  cx.fillRect(0, 0, W, H);
+
+  // ── Project 3D to 2D isometric ──
+  const cx0 = W / 2, cy0 = H * 0.42;
+  const tiltX = Math.cos(camAngle) * zoomLevel * dpr;
+  const tiltY = Math.sin(camAngle) * zoomLevel * dpr;
+  const cosR  = Math.cos(camRot), sinR = Math.sin(camRot);
+
+  function project(x, z, y=0) {
+    const rx = x * cosR - z * sinR;
+    const rz = x * sinR + z * cosR;
+    return {
+      sx: cx0 + rx * tiltX * 0.7,
+      sy: cy0 + rz * tiltY - y * tiltY * 0.4
+    };
+  }
+
+  // Scale: 1 unit = hole.yds / 220 pixels
+  const scale = (Math.min(W, H) * 0.9) / hole.yds;
+  const holeLen = hole.yds * scale * 0.95;
+  const fairwayW = 28 * scale * zoomLevel;
+  const dogX = shape.dogleg * holeLen * 0.5;
+  const greenR = 18 * scale * zoomLevel;
+
+  // Build fairway centerline points
+  const mid  = holeLen * 0.55;
+  const teeZ = -holeLen * 0.45;
+  const pinZ =  holeLen * 0.5;
+
+  // Key points along the hole (z axis = length, x = lateral)
+  const pts = [
+    {x:0, z:teeZ},
+    {x: dogX * 0.3, z: teeZ + holeLen * 0.35},
+    {x: dogX, z: 0},
+    {x: dogX * 0.6, z: pinZ - holeLen * 0.15},
+    {x: dogX * 0.4, z: pinZ},
+  ];
+
+  // ── Draw rough (wide band) ──
+  cx.beginPath();
+  pts.forEach((p,i) => {
+    const lp = project(p.x - fairwayW*2.2, p.z);
+    i===0 ? cx.moveTo(lp.sx, lp.sy) : cx.lineTo(lp.sx, lp.sy);
+  });
+  [...pts].reverse().forEach(p => {
+    const rp = project(p.x + fairwayW*2.2, p.z);
+    cx.lineTo(rp.sx, rp.sy);
+  });
+  cx.closePath();
+  cx.fillStyle = '#143d1f';
+  cx.fill();
+
+  // ── Draw fairway ──
+  cx.beginPath();
+  pts.forEach((p,i) => {
+    const lp = project(p.x - fairwayW, p.z);
+    i===0 ? cx.moveTo(lp.sx, lp.sy) : cx.lineTo(lp.sx, lp.sy);
+  });
+  [...pts].reverse().forEach(p => {
+    const rp = project(p.x + fairwayW, p.z);
+    cx.lineTo(rp.sx, rp.sy);
+  });
+  cx.closePath();
+  const fwGrad = cx.createLinearGradient(0, H*0.2, 0, H*0.85);
+  fwGrad.addColorStop(0, '#1e5c2a');
+  fwGrad.addColorStop(1, '#174d22');
+  cx.fillStyle = fwGrad;
+  cx.fill();
+
+  // Fairway stripes
+  for (let si = 0; si < pts.length - 1; si++) {
+    const a = pts[si], b = pts[si+1];
+    for (let t=0; t<1; t+=0.25) {
+      const mx = a.x + (b.x-a.x)*t, mz = a.z + (b.z-a.z)*t;
+      const lp = project(mx - fairwayW, mz);
+      const rp = project(mx + fairwayW, mz);
+      cx.beginPath(); cx.moveTo(lp.sx,lp.sy); cx.lineTo(rp.sx,rp.sy);
+      cx.strokeStyle = 'rgba(255,255,255,0.03)'; cx.lineWidth=2; cx.stroke();
+    }
+  }
+
+  // ── Draw water hazard ──
+  if (shape.water) {
+    const wz = teeZ + holeLen * (shape.hazards[0]==='water-front' ? 0.75 : 0.5);
+    const wx = shape.hazards[0]==='water-left' ? -fairwayW*2 : (shape.hazards[0]==='water-right' ? fairwayW*2 : 0);
+    const waterPts = [
+      project(wx - fairwayW*1.4, wz - holeLen*0.06),
+      project(wx,                wz - holeLen*0.02),
+      project(wx + fairwayW*1.4, wz - holeLen*0.06),
+      project(wx + fairwayW*1.2, wz + holeLen*0.05),
+      project(wx - fairwayW*1.2, wz + holeLen*0.05),
+    ];
+    cx.beginPath();
+    waterPts.forEach((p,i) => i===0 ? cx.moveTo(p.sx,p.sy) : cx.lineTo(p.sx,p.sy));
+    cx.closePath();
+    cx.fillStyle = 'rgba(29,90,160,0.55)';
+    cx.fill();
+    cx.strokeStyle = 'rgba(80,160,255,0.3)'; cx.lineWidth = 1; cx.stroke();
+    // water shimmer
+    for (let wi=0; wi<4; wi++) {
+      const wlp = project(wx - fairwayW + wi*fairwayW*0.6, wz + holeLen*0.01);
+      const wrp = project(wx - fairwayW*0.5 + wi*fairwayW*0.6, wz + holeLen*0.01);
+      cx.beginPath(); cx.moveTo(wlp.sx,wlp.sy); cx.lineTo(wrp.sx,wrp.sy);
+      cx.strokeStyle='rgba(150,210,255,0.25)'; cx.lineWidth=1.5; cx.stroke();
+    }
+  }
+
+  // ── Draw bunkers ──
+  const bunkPos = shape.hazards.filter(h=>h.startsWith('bunker'));
+  bunkPos.forEach(b => {
+    const isGreen = b.includes('green');
+    const bz = teeZ + holeLen * (isGreen ? 0.88 : 0.55);
+    const sides = b.includes('both') ? [-1,1] : b.includes('left') ? [-1] : [1];
+    sides.forEach(side => {
+      const bx = (dogX * 0.5 + side * fairwayW * (isGreen ? 1.4 : 1.6));
+      const bunkPts = [
+        project(bx - fairwayW*0.5, bz - holeLen*0.025),
+        project(bx + fairwayW*0.3, bz - holeLen*0.015),
+        project(bx + fairwayW*0.5, bz + holeLen*0.025),
+        project(bx - fairwayW*0.3, bz + holeLen*0.03),
+      ];
+      cx.beginPath();
+      bunkPts.forEach((p,i) => i===0 ? cx.moveTo(p.sx,p.sy) : cx.lineTo(p.sx,p.sy));
+      cx.closePath();
+      cx.fillStyle = '#c9a84c33'; cx.fill();
+      cx.strokeStyle = '#c9a84c55'; cx.lineWidth=1; cx.stroke();
+    });
+  });
+
+  // ── Draw green ──
+  const pinPt = pts[pts.length-1];
+  const gp = project(pinPt.x, pinPt.z);
+  cx.beginPath();
+  cx.ellipse(gp.sx, gp.sy, greenR * 1.4 * tiltX/dpr, greenR * 0.85 * tiltY/dpr, 0, 0, Math.PI*2);
+  cx.fillStyle = '#25703a'; cx.fill();
+  cx.strokeStyle = '#30a050'; cx.lineWidth=1.5; cx.stroke();
+
+  // ── Draw flag ──
+  const flagPole = project(pinPt.x, pinPt.z, 12 * scale * zoomLevel);
+  cx.beginPath();
+  cx.moveTo(gp.sx, gp.sy);
+  cx.lineTo(flagPole.sx, flagPole.sy);
+  cx.strokeStyle = 'rgba(255,255,255,0.7)'; cx.lineWidth = 1.5; cx.stroke();
+  // Flag triangle
+  cx.beginPath();
+  cx.moveTo(flagPole.sx, flagPole.sy);
+  cx.lineTo(flagPole.sx + 10, flagPole.sy - 3);
+  cx.lineTo(flagPole.sx, flagPole.sy + 5);
+  cx.closePath();
+  cx.fillStyle = '#e53935'; cx.fill();
+
+  // ── Draw tee markers ──
+  const teePt = pts[0];
+  const teeP  = project(teePt.x, teePt.z);
+  cx.beginPath();
+  cx.ellipse(teeP.sx, teeP.sy, fairwayW*0.7, fairwayW*0.35, 0, 0, Math.PI*2);
+  cx.fillStyle = '#1e6b30'; cx.fill();
+  cx.strokeStyle = '#fff3'; cx.lineWidth=1; cx.stroke();
+  // White tee markers
+  [-1,1].forEach(side => {
+    const tp2 = project(side * fairwayW*0.35, teeZ + holeLen*0.01);
+    cx.beginPath();
+    cx.arc(tp2.sx, tp2.sy, 4, 0, Math.PI*2);
+    cx.fillStyle = '#ffffff'; cx.fill();
+  });
+
+  // ── Draw yardage markers (150/100/50) ──
+  [[150,'red'],[100,'white'],[50,'blue']].forEach(([yd, col]) => {
+    if (yd >= hole.yds) return;
+    const markerPct = (hole.yds - yd) / hole.yds;
+    const mIdx = Math.floor(markerPct * (pts.length-1));
+    const mFrac = markerPct * (pts.length-1) - mIdx;
+    if (mIdx >= pts.length-1) return;
+    const mx = pts[mIdx].x + (pts[mIdx+1].x-pts[mIdx].x)*mFrac;
+    const mz = pts[mIdx].z + (pts[mIdx+1].z-pts[mIdx].z)*mFrac;
+    const mL = project(mx - fairwayW, mz);
+    const mR = project(mx + fairwayW, mz);
+    cx.beginPath(); cx.moveTo(mL.sx, mL.sy); cx.lineTo(mR.sx, mR.sy);
+    cx.strokeStyle = col==='white'?'rgba(255,255,255,0.5)':col==='red'?'rgba(230,60,60,0.6)':'rgba(80,130,255,0.6)';
+    cx.lineWidth=1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+    // label
+    const lbl = project(mx + fairwayW*1.5, mz);
+    cx.fillStyle = col==='white'?'rgba(255,255,255,0.7)':col==='red'?'rgba(230,80,80,0.8)':'rgba(100,150,255,0.8)';
+    cx.font = `${10*dpr}px "DM Sans", sans-serif`;
+    cx.fillText(`${yd}y`, lbl.sx, lbl.sy+4);
+  });
+
+  // ── Draw ball position ──
+  if (ballPct > 0) {
+    const ballIdx = Math.min(Math.floor(ballPct*(pts.length-1)), pts.length-2);
+    const ballFrac = ballPct*(pts.length-1) - ballIdx;
+    const bx2 = pts[ballIdx].x + (pts[ballIdx+1].x-pts[ballIdx].x)*ballFrac;
+    const bz2 = pts[ballIdx].z + (pts[ballIdx+1].z-pts[ballIdx].z)*ballFrac;
+    const bp  = project(bx2, bz2, 3*scale*zoomLevel);
+    const bpg = project(bx2, bz2);
+    // shadow
+    cx.beginPath();
+    cx.ellipse(bpg.sx, bpg.sy, 7, 3.5, 0, 0, Math.PI*2);
+    cx.fillStyle='rgba(0,0,0,0.4)'; cx.fill();
+    // ball
+    cx.beginPath();
+    cx.arc(bp.sx, bp.sy, 6*dpr*0.5, 0, Math.PI*2);
+    cx.fillStyle='#ffffff'; cx.fill();
+    cx.strokeStyle='rgba(0,0,0,0.3)'; cx.lineWidth=0.5; cx.stroke();
+    // dimple shine
+    cx.beginPath();
+    cx.arc(bp.sx-1, bp.sy-1, 2, 0, Math.PI*2);
+    cx.fillStyle='rgba(255,255,255,0.5)'; cx.fill();
+
+    // Draw dashed line from ball to pin
+    cx.beginPath();
+    cx.moveTo(bp.sx, bp.sy);
+    cx.lineTo(gp.sx, gp.sy);
+    cx.strokeStyle='rgba(45,204,126,0.4)'; cx.lineWidth=1.2; cx.setLineDash([4,4]); cx.stroke(); cx.setLineDash([]);
+  }
+
+  // ── Compass / north indicator ──
+  cx.save();
+  cx.translate(W-32*dpr, 32*dpr);
+  cx.rotate(-camRot);
+  cx.beginPath(); cx.moveTo(0,-10); cx.lineTo(4,4); cx.lineTo(0,1); cx.lineTo(-4,4); cx.closePath();
+  cx.fillStyle='rgba(255,255,255,0.5)'; cx.fill();
+  cx.restore();
+}
+
+// ── SYNC hole3d with current scoring hole ──
+function syncH3DToHole() {
+  h3dHole = currentHole;
+  ballPct = 0;
+  if (document.getElementById('ball-slider')) document.getElementById('ball-slider').value = 0;
+  updateH3DHeader();
+  updateDistMarkers();
+  updateBallPosition(0);
+  renderH3D();
+}
+
+// ── TABS (updated) ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  if (tab==='standings') renderStandings();
+  if (tab==='dots') renderDots();
+  if (tab==='card') renderScorecardTable();
+  if (tab==='hole3d') {
+    syncH3DToHole();
+    requestAnimationFrame(() => { resizeCanvas(); renderH3D(); });
+  }
+}
+
+// ── FINISH MODAL ──
+function showFinishModal() {
+  const money = PLAYERS.map(()=>0);
+  // skins payout
+  for(let i=0;i<TOTAL_HOLES;i++){
+    if(!scores[i]._confirmed) continue;
+    const nets=PLAYERS.map((p,pi)=>scores[i][pi]-getHandicapStrokes(p.hcp,i));
+    const best=Math.min(...nets);
+    const w=nets.findIndex(n=>n===best);
+    const ties=nets.filter(n=>n===best).length;
+    if(ties===1){ PLAYERS.forEach((_,pi)=>{if(pi!==w){money[pi]-=STAKE;money[w]+=STAKE;}}); }
+  }
+  // dots payout
+  const totalDots = dots.map(d=>d.total);
+  const avgDots = totalDots.reduce((a,b)=>a+b,0)/PLAYERS.length;
+  PLAYERS.forEach((p,pi)=>{
+    const diff = dots[pi].total - avgDots;
+    money[pi] += Math.round(diff * DOT_VAL * (PLAYERS.length-1));
+  });
+
+  const html = [...PLAYERS.map((p,i)=>({...p,money:money[i]}))].sort((a,b)=>b.money-a.money).map(p=>`
+    <div class="modal-result-row">
+      <div class="modal-result-name"><div class="sr-avatar ${p.av}" style="width:28px;height:28px;font-size:10px">${p.initials}</div>${p.name}</div>
+      <div class="modal-result-amount ${p.money>=0?'pos':'neg'}">${p.money>=0?'+':''}$${Math.abs(p.money)}</div>
+    </div>`).join('');
+  document.getElementById('modal-results').innerHTML=html;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal(e) {
+  if (!e || e.target===document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('show');
+}
+
+function sendSettlement() {
+  showToast('Venmo requests sent! 💸');
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── START ──
+init();
+window.addEventListener('resize', () => { if(h3dCanvas){ resizeCanvas(); renderH3D(); } });
+</script>
+</body>
+</html>
