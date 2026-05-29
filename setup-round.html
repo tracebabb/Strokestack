@@ -1,0 +1,2546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Set Up a Round — StrokeStack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- Google API key embedded directly — edit this line to update -->
+<script>
+window.SS_CONFIG = {
+  GOOGLE_KEY: 'AIzaSyBzqJ9mRHIBcpg1by5NBBSxKHHitHHzuc4',
+  GOLF_API_KEY: '4VHIQM4G332CJSFMAKZONIRBRQ'
+};
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #0a0e0c;
+  --dark: #111814;
+  --card: #161d19;
+  --card2: #1c2520;
+  --card3: #212e28;
+  --green: #2dcc7e;
+  --green-dim: #1a7d4c;
+  --green-glow: rgba(45,204,126,0.12);
+  --green-border: rgba(45,204,126,0.28);
+  --gold: #c9a84c;
+  --text: #f0ede6;
+  --muted: #7a8a82;
+  --border: rgba(255,255,255,0.07);
+  --danger: #f87171;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 999; opacity: 0.35;
+}
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40px; height: 64px;
+  background: rgba(10,14,12,0.9);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px; letter-spacing: 0.05em; color: var(--text);
+  text-decoration: none;
+}
+.nav-logo span { color: var(--green); }
+.nav-back {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--muted); cursor: pointer;
+  background: none; border: none; font-family: 'DM Sans', sans-serif;
+  transition: color 0.2s;
+}
+.nav-back:hover { color: var(--text); }
+.nav-back svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+.nav-step-label { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+
+/* LAYOUT */
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+  padding-top: 64px;
+}
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--dark);
+  border-right: 1px solid var(--border);
+  padding: 40px 28px;
+  position: sticky; top: 64px;
+  height: calc(100vh - 64px);
+  display: flex; flex-direction: column;
+  gap: 6px;
+}
+.sidebar-title {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 20px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.step-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 8px;
+  cursor: pointer; transition: background 0.2s;
+  border: 1px solid transparent;
+}
+.step-item.active {
+  background: var(--green-glow);
+  border-color: var(--green-border);
+}
+.step-item.done { cursor: pointer; }
+.step-item.done:hover { background: rgba(255,255,255,0.03); }
+.step-item.locked { opacity: 0.4; cursor: not-allowed; }
+.step-bubble {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--card); color: var(--muted);
+  transition: all 0.2s;
+}
+.step-item.active .step-bubble {
+  background: var(--green); color: var(--black); border-color: var(--green);
+}
+.step-item.done .step-bubble {
+  background: var(--green-dim); color: var(--green); border-color: var(--green-border);
+}
+.step-bubble svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+.step-info {}
+.step-name { font-size: 13px; color: var(--text); }
+.step-item.locked .step-name { color: var(--muted); }
+.step-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.sidebar-summary {
+  margin-top: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.summary-title {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+}
+.summary-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-label { color: var(--muted); }
+.summary-value { color: var(--text); font-weight: 500; }
+.summary-value.green { color: var(--green); }
+
+/* MAIN */
+.main {
+  padding: 48px 56px;
+  max-width: 700px;
+}
+
+/* STEP PANELS */
+.step-panel { display: none; animation: slideIn 0.3s ease; }
+.step-panel.active { display: block; }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.panel-eyebrow {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 8px;
+}
+.panel-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px; letter-spacing: 0.02em; line-height: 1;
+  color: var(--text); margin-bottom: 8px;
+}
+.panel-sub {
+  font-size: 14px; color: var(--muted); line-height: 1.6;
+  margin-bottom: 36px; max-width: 480px;
+}
+
+/* FORM ELEMENTS */
+.field { margin-bottom: 22px; }
+.field-label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--muted); letter-spacing: 0.04em;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.field-input {
+  width: 100%; background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; color: var(--text); outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.field-input::placeholder { color: var(--muted); }
+.field-input:focus { border-color: var(--green-border); background: var(--card2); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* DATE PICKER STYLE */
+.field-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5); cursor: pointer;
+}
+
+/* FORMAT CARDS */
+.formats-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 24px;
+}
+.format-opt {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px;
+  cursor: pointer; transition: all 0.2s; user-select: none;
+  position: relative;
+}
+.format-opt:hover { border-color: rgba(255,255,255,0.15); background: var(--card2); }
+.format-opt.selected {
+  border-color: var(--green-border);
+  background: var(--green-glow);
+}
+.format-opt.selected::after {
+  content: '';
+  position: absolute; top: 10px; right: 10px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--green);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='2,6 5,9 10,3' stroke='%230a0e0c' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-size: 12px; background-repeat: no-repeat; background-position: center;
+}
+.format-opt-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.format-opt-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.format-opt-tag {
+  display: inline-block; flex-shrink: 0;
+  font-size: 9px; font-weight: 500; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--green);
+  background: rgba(45,204,126,0.08); border: 1px solid var(--green-border);
+  padding: 2px 7px; border-radius: 100px; margin-top: 2px;
+}
+.format-opt-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.format-meta { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.meta-pill {
+  font-size: 10px; color: var(--muted);
+  background: var(--card2); border: 1px solid var(--border);
+  padding: 2px 8px; border-radius: 100px;
+}
+.format-category-label {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 24px 0 10px;
+  font-size: 13px; font-weight: 500; color: var(--text);
+}
+.cat-desc { font-size: 11px; color: var(--muted); }
+
+/* STAKES ROW */
+.stakes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 22px; }
+.stake-opt {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 10px; text-align: center;
+  cursor: pointer; transition: all 0.2s; user-select: none;
+}
+.stake-opt:hover { border-color: rgba(255,255,255,0.15); }
+.stake-opt.selected { border-color: var(--green-border); background: var(--green-glow); }
+.stake-amount { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.04em; color: var(--text); }
+.stake-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* PLAYERS */
+.players-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.player-entry {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+  display: grid; grid-template-columns: 36px 1fr 100px 100px 36px;
+  align-items: center; gap: 12px;
+  transition: border-color 0.2s;
+  animation: slideIn 0.25s ease;
+}
+.player-entry:hover { border-color: rgba(255,255,255,0.12); }
+.player-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; flex-shrink: 0;
+}
+.pa-0 { background: rgba(45,204,126,0.15); color: var(--green); }
+.pa-1 { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.pa-2 { background: rgba(201,168,76,0.15); color: var(--gold); }
+.pa-3 { background: rgba(239,68,68,0.15); color: var(--danger); }
+.pa-4 { background: rgba(167,139,250,0.15); color: #a78bfa; }
+.pa-5 { background: rgba(251,146,60,0.15); color: #fb923c; }
+.pa-6 { background: rgba(34,211,238,0.15); color: #22d3ee; }
+.pa-7 { background: rgba(244,114,182,0.15); color: #f472b6; }
+.player-name-input {
+  background: transparent; border: none; outline: none;
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  color: var(--text); width: 100%;
+}
+.player-name-input::placeholder { color: var(--muted); }
+.player-hcp-input, .player-email-input {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  color: var(--text); outline: none; width: 100%;
+  transition: border-color 0.2s;
+}
+.player-hcp-input:focus, .player-email-input:focus { border-color: var(--green-border); }
+.player-hcp-input::placeholder, .player-email-input::placeholder { color: var(--muted); font-size: 12px; }
+.player-remove {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; padding: 4px; transition: all 0.2s;
+}
+.player-remove:hover { color: var(--danger); background: rgba(248,113,113,0.08); }
+.player-remove svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.add-player-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: 1px dashed var(--border);
+  border-radius: 10px; padding: 14px 16px;
+  color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; cursor: pointer; width: 100%;
+  transition: all 0.2s;
+}
+.add-player-btn:hover { border-color: var(--green-border); color: var(--green); }
+.add-player-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.player-col-labels {
+  display: grid; grid-template-columns: 36px 1fr 100px 100px 36px;
+  gap: 12px; margin-bottom: 8px; padding: 0 16px;
+}
+.col-label { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* REVIEW */
+.review-section { margin-bottom: 28px; }
+.review-section-title {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.review-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.review-row:last-child { border-bottom: none; }
+.review-key { color: var(--muted); }
+.review-val { color: var(--text); font-weight: 500; }
+.review-val.green { color: var(--green); }
+.review-players-grid {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.review-player {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+}
+.review-player-left { display: flex; align-items: center; gap: 10px; }
+.review-player-name { font-size: 13px; color: var(--text); }
+.review-player-hcp { font-size: 11px; color: var(--muted); }
+.review-format-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.fmt-badge {
+  font-size: 11px; font-weight: 500;
+  background: var(--green-glow); border: 1px solid var(--green-border);
+  color: var(--green); padding: 3px 10px; border-radius: 100px;
+}
+
+/* BUTTONS */
+.btn-row { display: flex; gap: 12px; margin-top: 36px; }
+.btn-primary {
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  padding: 13px 32px; border-radius: 8px;
+  background: var(--green); color: var(--black);
+  border: none; cursor: pointer; transition: all 0.2s;
+}
+.btn-primary:hover { background: #3ddc8e; transform: translateY(-1px); }
+.btn-secondary {
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--muted);
+  padding: 13px 24px; background: none;
+  border: 1px solid var(--border); border-radius: 8px;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+.btn-launch {
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+  padding: 14px 40px; border-radius: 8px;
+  background: var(--green); color: var(--black);
+  border: none; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 10px;
+}
+.btn-launch:hover { background: #3ddc8e; transform: translateY(-2px); }
+.btn-launch svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* SUCCESS */
+.success-screen {
+  display: none; text-align: center;
+  padding: 60px 40px; animation: slideIn 0.4s ease;
+}
+.success-screen.active { display: block; }
+.success-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--green-glow); border: 2px solid var(--green-border);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 28px;
+}
+.success-icon svg { width: 36px; height: 36px; stroke: var(--green); fill: none; stroke-width: 1.5; }
+.success-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px; letter-spacing: 0.02em; color: var(--text); margin-bottom: 10px;
+}
+.success-sub { font-size: 15px; color: var(--muted); line-height: 1.65; max-width: 420px; margin: 0 auto 36px; }
+.round-code {
+  background: var(--card); border: 1px solid var(--green-border);
+  border-radius: 12px; padding: 20px 28px; display: inline-block; margin-bottom: 32px;
+}
+.round-code-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+.round-code-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px; letter-spacing: 0.12em; color: var(--green);
+}
+.success-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-share {
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  padding: 12px 28px; border-radius: 8px;
+  background: var(--green); color: var(--black);
+  border: none; cursor: pointer; transition: all 0.2s;
+}
+.btn-share:hover { background: #3ddc8e; }
+.btn-score {
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--muted);
+  padding: 12px 24px; background: none;
+  border: 1px solid var(--border); border-radius: 8px;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-score:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+/* DOTS CONFIG PANEL */
+.dots-card { border-color: rgba(201,168,76,0.2) !important; }
+.dots-card.selected { border-color: rgba(201,168,76,0.5) !important; background: rgba(201,168,76,0.06) !important; }
+.dots-config-panel {
+  background: var(--card);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 16px;
+  animation: slideIn 0.25s ease;
+}
+.dots-config-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.dots-config-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.dots-config-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.dots-collapse-btn {
+  font-size: 11px; color: var(--muted); background: none;
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 10px; cursor: pointer; white-space: nowrap;
+  font-family: 'DM Sans', sans-serif; transition: all 0.2s; flex-shrink: 0;
+}
+.dots-collapse-btn:hover { color: var(--text); }
+.dots-section-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+}
+.dots-rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dots-rule {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+  cursor: pointer; transition: all 0.2s; opacity: 0.5;
+}
+.dots-rule.active { opacity: 1; border-color: rgba(201,168,76,0.35); background: rgba(201,168,76,0.05); }
+.dots-rule-penalty.active { border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.05); }
+.dots-rule-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.dots-rule-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.dots-rule-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.dots-opt-tag {
+  font-size: 9px; color: var(--muted); background: var(--card);
+  border: 1px solid var(--border); border-radius: 100px;
+  padding: 1px 6px; margin-left: 4px; font-weight: 400;
+}
+.dots-rule-value-sel { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.dot-val-btn {
+  width: 20px; height: 20px; border-radius: 4px;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--muted); font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif; transition: all 0.15s; line-height: 1;
+}
+.dot-val-btn:hover { border-color: var(--gold); color: var(--gold); }
+.dot-val-display { font-size: 14px; font-weight: 500; color: var(--gold); min-width: 14px; text-align: center; }
+.dot-val-unit { font-size: 10px; color: var(--muted); }
+.dot-worth-grid {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.dot-worth-opt {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 16px;
+  font-size: 13px; font-weight: 500; color: var(--muted);
+  cursor: pointer; transition: all 0.2s;
+}
+.dot-worth-opt:hover { border-color: rgba(201,168,76,0.4); color: var(--gold); }
+.dot-worth-opt.selected { border-color: rgba(201,168,76,0.5); background: rgba(201,168,76,0.08); color: var(--gold); }
+.dots-preview {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; margin-top: 16px;
+}
+.dots-preview-title { font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.preview-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.preview-row:last-child { border-bottom: none; }
+.preview-label { color: var(--muted); }
+.preview-val { font-weight: 500; color: var(--text); }
+.preview-val.gold { color: var(--gold); }
+.preview-val.red { color: var(--danger); }
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
+}
+.toggle-info {}
+.toggle-label { font-size: 13px; color: var(--text); }
+.toggle-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.toggle {
+  position: relative; width: 40px; height: 22px; flex-shrink: 0;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute; inset: 0;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 100px; cursor: pointer; transition: all 0.2s;
+}
+.toggle-track::after {
+  content: ''; position: absolute;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--muted); top: 2px; left: 2px;
+  transition: all 0.2s;
+}
+.toggle input:checked + .toggle-track { background: var(--green-dim); border-color: var(--green-border); }
+.toggle input:checked + .toggle-track::after { background: var(--green); transform: translateX(18px); }
+
+/* PROGRESS BAR */
+.progress-bar {
+  position: fixed; top: 64px; left: 0; right: 0; height: 2px;
+  background: var(--border); z-index: 99;
+}
+.progress-fill {
+  height: 100%; background: var(--green);
+  transition: width 0.4s ease;
+}
+
+/* MOBILE */
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { padding: 32px 24px; }
+  .formats-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+  .player-entry { grid-template-columns: 36px 1fr 80px 32px; }
+  .player-email-input { display: none; }
+  .player-col-labels { grid-template-columns: 36px 1fr 80px 32px; }
+  .stakes-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* COURSE SEARCH RESULTS */
+.course-result-row {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px; cursor:pointer; transition:background .15s;
+  border-bottom:1px solid var(--border);
+}
+.course-result-row:last-child { border-bottom:none; }
+.course-result-row:hover { background:var(--card2); }
+.crr-icon { font-size:18px; flex-shrink:0; }
+.crr-info { flex:1; min-width:0; }
+.crr-name { font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.crr-meta { font-size:11px; color:var(--muted); margin-top:1px; }
+.crr-right { text-align:right; flex-shrink:0; }
+.crr-rating { font-size:10px; color:var(--muted); margin-bottom:2px; }
+.crr-arrow { font-size:14px; color:var(--green); }
+
+/* SCORECARD PREVIEW TABLE */
+#scorecard-table { border-collapse:collapse; overflow:hidden; border-radius:8px; }
+#scorecard-preview { border:1px solid var(--green-border); border-radius:10px; padding:14px; background:rgba(45,204,126,.04); }
+
+
+
+/* DIVIDER */
+.or-divider {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 12px; color: var(--muted); margin: 16px 0;
+}
+.or-divider::before, .or-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="nav-back" onclick="window.history.back()">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to StrokeStack
+  </button>
+  <a href="index.html" class="nav-logo">Stroke<span>Stack</span></a>
+  <div class="nav-step-label" id="nav-step-label">Step 1 of 4</div>
+</nav>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progress-fill" style="width: 25%"></div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Set up your round</div>
+
+    <div class="step-item active" id="side-1" onclick="goTo(1)">
+      <div class="step-bubble" id="bubble-1">1</div>
+      <div class="step-info">
+        <div class="step-name">Round details</div>
+        <div class="step-desc">Course, date, time</div>
+      </div>
+    </div>
+    <div class="step-item locked" id="side-2" onclick="goTo(2)">
+      <div class="step-bubble" id="bubble-2">2</div>
+      <div class="step-info">
+        <div class="step-name">Game formats</div>
+        <div class="step-desc">Pick your games + stakes</div>
+      </div>
+    </div>
+    <div class="step-item locked" id="side-3" onclick="goTo(3)">
+      <div class="step-bubble" id="bubble-3">3</div>
+      <div class="step-info">
+        <div class="step-name">Add players</div>
+        <div class="step-desc">Names + handicaps</div>
+      </div>
+    </div>
+    <div class="step-item locked" id="side-4" onclick="goTo(4)">
+      <div class="step-bubble" id="bubble-4">4</div>
+      <div class="step-info">
+        <div class="step-name">Review &amp; launch</div>
+        <div class="step-desc">Confirm everything</div>
+      </div>
+    </div>
+
+    <div class="sidebar-summary" id="sidebar-summary">
+      <div class="summary-title">Round summary</div>
+      <div class="summary-row">
+        <span class="summary-label">Course</span>
+        <span class="summary-value" id="sum-course">—</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Date</span>
+        <span class="summary-value" id="sum-date">—</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Players</span>
+        <span class="summary-value" id="sum-players">—</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Formats</span>
+        <span class="summary-value green" id="sum-formats">—</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Stakes</span>
+        <span class="summary-value green" id="sum-stakes">—</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- STEP 1: ROUND DETAILS -->
+    <div class="step-panel active" id="panel-1">
+      <div class="panel-eyebrow">Step 1 of 4</div>
+      <div class="panel-title">Round details</div>
+      <p class="panel-sub">Tell us where and when you're teeing off. All bets will be tied to this round.</p>
+
+      <div class="field">
+        <label class="field-label">Golf course</label>
+
+        <!-- API key goes on the line below — replace YOUR_GOOGLE_KEY_HERE -->
+        <div id="places-api-status" style="display:none;font-size:11px;padding:8px 10px;border-radius:6px;margin-bottom:8px;"></div>
+
+        <div style="position:relative;">
+          <input class="field-input" type="text" id="course-name"
+            placeholder="Search for a course..."
+            oninput="handleCourseInput(this.value)"
+            autocomplete="off"
+            style="padding-right:44px;">
+          <button id="locate-btn" onclick="locateMe()" title="Find courses near me"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:color 0.2s;"
+            onmouseover="this.style.color='var(--green)'"
+            onmouseout="this.style.color='var(--muted)'">
+            <svg id="locate-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+              <circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Location status -->
+        <div id="location-status" style="display:none;font-size:11px;color:var(--green);margin-top:6px;align-items:center;gap:5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>
+          <span id="location-status-text">Detecting your location...</span>
+        </div>
+
+        <!-- Course dropdown results -->
+        <div id="course-results" style="display:none;margin-top:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+      </div>
+
+      <!-- Scorecard preview — shown after course selected -->
+      <div id="scorecard-preview" style="display:none;margin-bottom:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <label class="field-label" style="margin-bottom:0;">Course scorecard</label>
+          <button onclick="clearCourse()" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;">Change course ×</button>
+        </div>
+        <div id="scorecard-selected-course" style="font-size:13px;font-weight:500;color:var(--green);margin-bottom:10px;"></div>
+        <div style="overflow-x:auto;">
+          <table id="scorecard-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px;">
+            <thead>
+              <tr id="scorecard-hole-row" style="background:var(--card2);"></tr>
+              <tr id="scorecard-par-row" style="background:var(--card);"></tr>
+              <tr id="scorecard-yds-row" style="background:var(--card2);"></tr>
+            </thead>
+          </table>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;">Par layout loaded — scores will be tracked against this card during the round.</div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Date</label>
+          <input class="field-input" type="date" id="round-date" oninput="updateSummary()">
+        </div>
+        <div class="field">
+          <label class="field-label">Tee time</label>
+          <input class="field-input" type="time" id="round-time" oninput="updateSummary()">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Number of holes</label>
+        <div class="stakes-grid" style="grid-template-columns: 1fr 1fr; max-width: 240px;">
+          <div class="stake-opt selected" id="holes-18" onclick="selectHoles(18)">
+            <div class="stake-amount">18</div>
+            <div class="stake-label">Full round</div>
+          </div>
+          <div class="stake-opt" id="holes-9" onclick="selectHoles(9)">
+            <div class="stake-amount">9</div>
+            <div class="stake-label">Front / back</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-label">Private round</div>
+          <div class="toggle-desc">Only invited players can join</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-label">Auto-settle after round</div>
+          <div class="toggle-desc">Send Venmo / PayPal requests automatically</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="goTo(2)">Continue to formats →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: FORMATS -->
+    <div class="step-panel" id="panel-2">
+      <div class="panel-eyebrow">Step 2 of 4</div>
+      <div class="panel-title">Game formats</div>
+      <p class="panel-sub">Stack as many formats as you want. Each runs simultaneously — one round, maximum action.</p>
+
+      <!-- SELECTED COUNTER -->
+      <div id="format-counter" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div style="font-size:12px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;">Choose your games</div>
+        <div id="counter-badge" style="font-size:12px;font-weight:500;color:var(--green);background:var(--green-glow);border:1px solid var(--green-border);padding:4px 12px;border-radius:100px;">1 selected</div>
+      </div>
+
+      <!-- CATEGORY: THE CLASSICS -->
+      <div class="format-category-label">
+        <span>⭐ The Classics</span>
+        <span class="cat-desc">Most popular games — great for any group</span>
+      </div>
+      <div class="formats-grid">
+        <div class="format-opt selected" onclick="toggleFormat(this, 'Skins')" data-info="Each hole is worth a skin. Ties carry the pot to the next hole — creating massive drama. One birdie can swing the whole pot.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Skins</div>
+            <div class="format-opt-tag">Most popular</div>
+          </div>
+          <div class="format-opt-desc">Lowest net score wins each hole. Ties carry forward — pot builds until someone wins clean.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Individual</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Nassau')" data-info="Three separate bets: front 9, back 9, and full 18. A $5 Nassau means $15 max exposure. Press rules let the trailing side double up mid-round.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Nassau</div>
+            <div class="format-opt-tag">Classic</div>
+          </div>
+          <div class="format-opt-desc">Three bets in one — front 9, back 9, and full 18. Press options keep everyone in it all day.</div>
+          <div class="format-meta"><span class="meta-pill">2–4 players</span><span class="meta-pill">Individual or teams</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Match Play')" data-info="Head-to-head hole by hole. Win a hole, go 1-up. Highest score at the end of the round wins. Strategy matters more than any single bad hole.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Match Play</div>
+            <div class="format-opt-tag">Head-to-head</div>
+          </div>
+          <div class="format-opt-desc">Win holes, not strokes. One bad hole doesn't kill you — momentum swings round by round.</div>
+          <div class="format-meta"><span class="meta-pill">2–4 players</span><span class="meta-pill">Individual or teams</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Stroke Play')" data-info="Total net score over 18 holes. The purest format in golf — no luck, no carryovers. Best player wins, period.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Stroke Play</div>
+            <div class="format-opt-tag">Pure golf</div>
+          </div>
+          <div class="format-opt-desc">Total net score over 18 holes. No drama, no carryovers — the best player simply wins.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Individual</span></div>
+        </div>
+      </div>
+
+      <!-- CATEGORY: TEAM GAMES -->
+      <div class="format-category-label">
+        <span>🤝 Team Games</span>
+        <span class="cat-desc">Partner up and play together</span>
+      </div>
+      <div class="formats-grid">
+        <div class="format-opt" onclick="toggleFormat(this, 'Wolf')" data-info="Each hole, one player is the Wolf (rotating). The Wolf hits last and can pick a partner after any tee shot — or go Lone Wolf against all three for triple points.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Wolf</div>
+            <div class="format-opt-tag">Strategic</div>
+          </div>
+          <div class="format-opt-desc">The Wolf picks partners after each tee shot — or goes lone wolf for triple the points.</div>
+          <div class="format-meta"><span class="meta-pill">4 players only</span><span class="meta-pill">Rotating teams</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Best Ball')" data-info="Teams of 2. Both players play their own ball every hole — only the lower score counts for the team. Great for mixed-skill groups since your partner can cover your bad holes.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Best Ball</div>
+            <div class="format-opt-tag">Team</div>
+          </div>
+          <div class="format-opt-desc">Teams of 2 — each plays their own ball, lowest score counts. Partner covers your bad holes.</div>
+          <div class="format-meta"><span class="meta-pill">4 players</span><span class="meta-pill">Teams of 2</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, '6-6-6')" data-info="Also called Hollywood or Round Robin. Pairings rotate every 6 holes — so you partner with everyone at some point. Three separate 6-hole matches, all played as best ball.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">6-6-6</div>
+            <div class="format-opt-tag">Round robin</div>
+          </div>
+          <div class="format-opt-desc">Partner pairings rotate every 6 holes. Three separate matches — you play with everyone.</div>
+          <div class="format-meta"><span class="meta-pill">4 players only</span><span class="meta-pill">Rotating teams</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Scramble')" data-info="Everyone tees off, then the group picks the best shot and all play from there. Repeat until holed. Great for large groups and casual rounds — bad individual shots don't matter.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Scramble</div>
+            <div class="format-opt-tag">Casual fun</div>
+          </div>
+          <div class="format-opt-desc">Everyone hits, best shot is chosen for all. Great for relaxed rounds where no one wants pressure.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Team</span></div>
+        </div>
+      </div>
+
+      <!-- CATEGORY: POINTS GAMES -->
+      <div class="format-category-label">
+        <span>🎯 Points Games</span>
+        <span class="cat-desc">Earn points for birdies, saves, and clutch moments</span>
+      </div>
+      <div class="formats-grid">
+        <div class="format-opt" onclick="toggleFormat(this, 'Stableford')" data-info="Points based on score vs par. Bogey = 1pt, Par = 2pts, Birdie = 3pts, Eagle = 5pts. Limits the damage of blow-up holes — you can never score less than zero on a hole.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Stableford</div>
+            <div class="format-opt-tag">Points-based</div>
+          </div>
+          <div class="format-opt-desc">Points for birdies and pars. One blow-up hole won't destroy your round — play aggressively.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Individual</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Bingo Bango Bongo')" data-info="3 points per hole. Bingo: first on the green. Bango: closest to pin once all are on. Bongo: first to hole out. High-handicappers can compete since order of play matters.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Bingo Bango Bongo</div>
+            <div class="format-opt-tag">High-energy</div>
+          </div>
+          <div class="format-opt-desc">3 points per hole — first on green, closest to pin, first to hole out. Leveler for all handicaps.</div>
+          <div class="format-meta"><span class="meta-pill">2–4 players</span><span class="meta-pill">Individual</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Chicago')" data-info="Each player is given a quota based on their handicap (e.g. HCP 18 = quota of 39). Points: bogey=1, par=2, birdie=4, eagle=8. Player who beats their quota by most wins.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Chicago</div>
+            <div class="format-opt-tag">Quota-based</div>
+          </div>
+          <div class="format-opt-desc">Everyone gets a quota from their handicap. Beat your quota by the most and take the pot.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Individual</span></div>
+        </div>
+      </div>
+        <div class="dots-config-panel">
+          <div class="dots-config-header">
+            <div>
+              <div class="dots-config-title">🟢 Dots — Configure your rules</div>
+              <div class="dots-config-sub">Set exactly how dots are earned and what each one is worth at the end of the round.</div>
+            </div>
+            <button class="dots-collapse-btn" onclick="toggleDotConfig()">Collapse ▲</button>
+          </div>
+
+          <!-- DOT VALUES -->
+          <div class="dots-section-label">Dot earning rules</div>
+          <div class="dots-rules-grid">
+            <div class="dots-rule active" id="rule-oneputt">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">One-putt</div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="setDotVal('oneputt', Math.max(1, dotVals.oneputt-1))">−</button>
+                  <span class="dot-val-display" id="val-oneputt">1</span>
+                  <button class="dot-val-btn" onclick="setDotVal('oneputt', Math.min(5, dotVals.oneputt+1))">+</button>
+                  <span class="dot-val-unit">dot</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Sink the putt in one stroke from on the green</div>
+            </div>
+            <div class="dots-rule active" id="rule-chipin">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Chip-in / Hole out</div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="setDotVal('chipin', Math.max(1, dotVals.chipin-1))">−</button>
+                  <span class="dot-val-display" id="val-chipin">2</span>
+                  <button class="dot-val-btn" onclick="setDotVal('chipin', Math.min(5, dotVals.chipin+1))">+</button>
+                  <span class="dot-val-unit">dots</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Hole out from off the green — chip, pitch, bunker, or putt from the fringe</div>
+            </div>
+            <div class="dots-rule" id="rule-sandysave" onclick="toggleDotRule('sandysave', this)">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Sandy save <span class="dots-opt-tag">Optional</span></div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('sandysave', Math.max(1, dotVals.sandysave-1))">−</button>
+                  <span class="dot-val-display" id="val-sandysave">1</span>
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('sandysave', Math.min(5, dotVals.sandysave+1))">+</button>
+                  <span class="dot-val-unit">dot</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Up and down from a bunker for par or better — tap to enable</div>
+            </div>
+            <div class="dots-rule" id="rule-birdie" onclick="toggleDotRule('birdie', this)">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Birdie <span class="dots-opt-tag">Optional</span></div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('birdie', Math.max(1, dotVals.birdie-1))">−</button>
+                  <span class="dot-val-display" id="val-birdie">1</span>
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('birdie', Math.min(5, dotVals.birdie+1))">+</button>
+                  <span class="dot-val-unit">dot</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Score one under par on any hole — tap to enable</div>
+            </div>
+            <div class="dots-rule" id="rule-eagle" onclick="toggleDotRule('eagle', this)">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Eagle <span class="dots-opt-tag">Optional</span></div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('eagle', Math.max(1, dotVals.eagle-1))">−</button>
+                  <span class="dot-val-display" id="val-eagle">3</span>
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('eagle', Math.min(10, dotVals.eagle+1))">+</button>
+                  <span class="dot-val-unit">dots</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Score two under par on any hole — tap to enable</div>
+            </div>
+            <div class="dots-rule dots-rule-penalty" id="rule-threeputt" onclick="toggleDotRule('threeputt', this)">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Three-putt penalty <span class="dots-opt-tag">Optional</span></div>
+                <div class="dots-rule-value-sel" onclick="event.stopPropagation()">
+                  <span style="font-size:13px;color:var(--danger);font-weight:500;margin-right:2px;">$</span>
+                  <button class="dot-val-btn" style="border-color:rgba(248,113,113,0.3)" onclick="setThreePuttVal(Math.max(1, threePuttVal-1))">−</button>
+                  <span class="dot-val-display" id="val-threeputt" style="color:var(--danger);">1</span>
+                  <button class="dot-val-btn" style="border-color:rgba(248,113,113,0.3)" onclick="setThreePuttVal(Math.min(20, threePuttVal+1))">+</button>
+                  <span class="dot-val-unit">cash</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Three putts on any green = flat cash penalty paid to each other player — tap to enable</div>
+            </div>
+          </div>
+
+          <!-- DOT WORTH -->
+          <div class="dots-section-label" style="margin-top:20px;">Each dot is worth</div>
+          <div class="dot-worth-grid">
+            <div class="dot-worth-opt selected" onclick="selectDotWorth(this, 0.5)">$0.50</div>
+            <div class="dot-worth-opt" onclick="selectDotWorth(this, 1)">$1</div>
+            <div class="dot-worth-opt" onclick="selectDotWorth(this, 2)">$2</div>
+            <div class="dot-worth-opt" onclick="selectDotWorth(this, 5)">$5</div>
+            <div class="dot-worth-opt" onclick="selectDotWorth(this, 0)" id="dot-worth-custom-opt">Custom</div>
+          </div>
+          <div id="dot-worth-custom-wrap" style="display:none;margin-top:8px;">
+            <input class="field-input" type="number" id="dot-worth-custom-val" placeholder="$ per dot" style="max-width:160px;" oninput="updateDotsPreview()">
+          </div>
+
+          <!-- LIVE PREVIEW -->
+          <div class="dots-preview" id="dots-preview">
+            <div class="dots-preview-title">Example payout preview</div>
+            <div class="dots-preview-body" id="dots-preview-body">
+              <!-- Filled by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATEGORY: SIDE BETS -->
+      <div class="format-category-label">
+        <span>🎰 Side Bets</span>
+        <span class="cat-desc">Add on top of any main format for extra action</span>
+      </div>
+      <div class="formats-grid">
+        <div class="format-opt" onclick="toggleFormat(this, 'Closest to Pin')" data-info="Par 3s only. Everyone throws cash in before the hole. Whoever ends up closest to the pin wins the whole pool. Clean, simple, dramatic.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Closest to Pin</div>
+            <div class="format-opt-tag">Par 3s only</div>
+          </div>
+          <div class="format-opt-desc">Side pot on every par 3 — closest to the pin after the tee shot takes the whole pool.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Side bet</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Longest Drive')" data-info="Designated hole (usually a par 5). Longest drive in the fairway wins the pot. Optional: add a closest to the pin on the same hole.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Longest Drive</div>
+            <div class="format-opt-tag">Power contest</div>
+          </div>
+          <div class="format-opt-desc">Designated par 5 hole — longest drive in the fairway takes the pot. Bombers rejoice.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Side bet</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Sandies')" data-info="A Sandy is when a player gets up and down from a bunker for par or better. Each Sandy earns a dollar amount from the other players. Rare enough to be exciting, common enough to happen.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Sandies</div>
+            <div class="format-opt-tag">Bunker saves</div>
+          </div>
+          <div class="format-opt-desc">Get up and down from any bunker for par or better and collect from every other player.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Side bet</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Arnies')" data-info="An Arnie (named after Arnold Palmer) is when a player makes par or better without hitting the fairway off the tee. Scrambling legend pays off big here.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Arnies</div>
+            <div class="format-opt-tag">Scramblers</div>
+          </div>
+          <div class="format-opt-desc">Make par or better without hitting the fairway off the tee — named after Arnold Palmer himself.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Side bet</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Barkies')" data-info="A Barkie is when a player hits a tree during the hole and still makes par or better. The more chaotic the round, the more Barkies get paid out.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Barkies</div>
+            <div class="format-opt-tag">Tree huggers</div>
+          </div>
+          <div class="format-opt-desc">Hit a tree AND still make par or better on the hole. Chaos rewards the lucky and resilient.</div>
+          <div class="format-meta"><span class="meta-pill">2–8 players</span><span class="meta-pill">Side bet</span></div>
+        </div>
+        <div class="format-opt" onclick="toggleFormat(this, 'Vegas')" data-info="Teams of 2. Each team's two scores are combined to form a two-digit number (e.g. 4 and 5 = 45, not 9). Lower number wins. A huge score gap between partners is catastrophic.">
+          <div class="format-opt-header">
+            <div class="format-opt-name">Vegas</div>
+            <div class="format-opt-tag">High risk</div>
+          </div>
+          <div class="format-opt-desc">Teams combine scores into a two-digit number — not added. The gaps between partners are brutal.</div>
+          <div class="format-meta"><span class="meta-pill">4 players</span><span class="meta-pill">Teams of 2</span></div>
+        </div>
+      </div>
+
+      <!-- STAKES -->
+      <div class="field" style="margin-top:8px;">
+        <label class="field-label">Stakes per player (per format)</label>
+        <div class="stakes-grid">
+          <div class="stake-opt" onclick="selectStake(this, '$2')" id="stake-2">
+            <div class="stake-amount">$2</div>
+            <div class="stake-label">Friendly</div>
+          </div>
+          <div class="stake-opt selected" onclick="selectStake(this, '$5')" id="stake-5">
+            <div class="stake-amount">$5</div>
+            <div class="stake-label">Standard</div>
+          </div>
+          <div class="stake-opt" onclick="selectStake(this, '$10')" id="stake-10">
+            <div class="stake-amount">$10</div>
+            <div class="stake-label">Competitive</div>
+          </div>
+          <div class="stake-opt" onclick="selectStake(this, 'Custom')" id="stake-custom">
+            <div class="stake-amount" style="font-size:16px;padding-top:2px;">Custom</div>
+            <div class="stake-label">Set your own</div>
+          </div>
+        </div>
+        <div id="custom-stake-wrap" style="display:none; margin-top: 10px;">
+          <input class="field-input" type="number" id="custom-stake-val" placeholder="Enter amount per player ($)" oninput="updateSummary()">
+        </div>
+        <div class="field-hint">Each player puts this amount in per format selected.</div>
+      </div>
+
+      <!-- INFO TOOLTIP -->
+      <div id="format-info-box" style="display:none;background:var(--card2);border:1px solid var(--green-border);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:500;color:var(--green);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:5px;" id="info-box-title">How it works</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;" id="info-box-body"></div>
+      </div>
+
+      <!-- ♣️ AFTER-ROUND CARD GAME: DOTS -->
+      <div style="height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:28px 0;"></div>
+      <div class="format-category-label" style="margin-top:0;">
+        <span>♣️ After-Round Card Game</span>
+        <span class="cat-desc">Played at the 19th hole — not on the course</span>
+      </div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Dots is a card game your group plays after the round. During the round, players track their dots on the course. Optionally add a money side bet so dots have a cash value.</p>
+
+      <div class="dots-card-outer" id="dots-card" onclick="toggleDots(this)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px;">🟢 Dots</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.55;">Track dots during the round, play the card game after. <strong style="color:var(--text);">1 dot</strong> for a one-putt. <strong style="color:var(--text);">2 dots</strong> for a chip-in or holing out from off the green.</div>
+          </div>
+          <div id="dots-toggle-badge" style="flex-shrink:0;font-size:11px;font-weight:500;color:var(--muted);background:var(--card2);border:1px solid var(--border);padding:4px 12px;border-radius:100px;white-space:nowrap;">Off</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--muted);background:var(--card2);border:1px solid var(--border);padding:2px 8px;border-radius:100px;">2–8 players</span>
+          <span style="font-size:10px;color:var(--muted);background:var(--card2);border:1px solid var(--border);padding:2px 8px;border-radius:100px;">After round</span>
+          <span style="font-size:10px;color:var(--gold);background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);padding:2px 8px;border-radius:100px;">Card game + optional money</span>
+        </div>
+      </div>
+
+      <!-- DOTS EXPANDED CONFIG -->
+      <div id="dots-config" style="display:none;">
+        <div class="dots-config-panel">
+          <div class="dots-config-header">
+            <div>
+              <div class="dots-config-title">🟢 Dots — Configure your rules</div>
+              <div class="dots-config-sub">These rules apply during the round for dot tracking. The card game is played after using these totals.</div>
+            </div>
+            <button class="dots-collapse-btn" onclick="toggleDotConfig()">Collapse ▲</button>
+          </div>
+
+          <div class="dots-section-label">Dot earning rules</div>
+          <div class="dots-rules-grid">
+            <div class="dots-rule active" id="rule-oneputt">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">One-putt</div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="setDotVal('oneputt', Math.max(1, dotVals.oneputt-1))">−</button>
+                  <span class="dot-val-display" id="val-oneputt">1</span>
+                  <button class="dot-val-btn" onclick="setDotVal('oneputt', Math.min(5, dotVals.oneputt+1))">+</button>
+                  <span class="dot-val-unit">dot</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Sink the putt in one stroke from on the green</div>
+            </div>
+            <div class="dots-rule active" id="rule-chipin">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Chip-in / Hole out</div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="setDotVal('chipin', Math.max(1, dotVals.chipin-1))">−</button>
+                  <span class="dot-val-display" id="val-chipin">2</span>
+                  <button class="dot-val-btn" onclick="setDotVal('chipin', Math.min(5, dotVals.chipin+1))">+</button>
+                  <span class="dot-val-unit">dots</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Hole out from off the green — chip, pitch, bunker, or fringe</div>
+            </div>
+            <div class="dots-rule" id="rule-sandysave" onclick="toggleDotRule('sandysave', this)">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Sandy save <span class="dots-opt-tag">Optional</span></div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('sandysave', Math.max(1, dotVals.sandysave-1))">−</button>
+                  <span class="dot-val-display" id="val-sandysave">1</span>
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('sandysave', Math.min(5, dotVals.sandysave+1))">+</button>
+                  <span class="dot-val-unit">dot</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Up and down from a bunker for par or better — tap to enable</div>
+            </div>
+            <div class="dots-rule" id="rule-birdie" onclick="toggleDotRule('birdie', this)">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Birdie <span class="dots-opt-tag">Optional</span></div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('birdie', Math.max(1, dotVals.birdie-1))">−</button>
+                  <span class="dot-val-display" id="val-birdie">1</span>
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('birdie', Math.min(5, dotVals.birdie+1))">+</button>
+                  <span class="dot-val-unit">dot</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Score one under par on any hole — tap to enable</div>
+            </div>
+            <div class="dots-rule" id="rule-eagle" onclick="toggleDotRule('eagle', this)">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Eagle <span class="dots-opt-tag">Optional</span></div>
+                <div class="dots-rule-value-sel">
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('eagle', Math.max(1, dotVals.eagle-1))">−</button>
+                  <span class="dot-val-display" id="val-eagle">3</span>
+                  <button class="dot-val-btn" onclick="event.stopPropagation();setDotVal('eagle', Math.min(10, dotVals.eagle+1))">+</button>
+                  <span class="dot-val-unit">dots</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Score two under par on any hole — tap to enable</div>
+            </div>
+            <div class="dots-rule dots-rule-penalty" id="rule-threeputt" onclick="toggleDotRule('threeputt', this)">
+              <div class="dots-rule-top">
+                <div class="dots-rule-name">Three-putt penalty <span class="dots-opt-tag">Optional</span></div>
+                <div class="dots-rule-value-sel" onclick="event.stopPropagation()">
+                  <span style="font-size:13px;color:var(--danger);font-weight:500;margin-right:2px;">$</span>
+                  <button class="dot-val-btn" style="border-color:rgba(248,113,113,0.3)" onclick="setThreePuttVal(Math.max(1, threePuttVal-1))">−</button>
+                  <span class="dot-val-display" id="val-threeputt" style="color:var(--danger);">1</span>
+                  <button class="dot-val-btn" style="border-color:rgba(248,113,113,0.3)" onclick="setThreePuttVal(Math.min(20, threePuttVal+1))">+</button>
+                  <span class="dot-val-unit">cash</span>
+                </div>
+              </div>
+              <div class="dots-rule-desc">Three putts = flat cash penalty paid to each other player — tap to enable</div>
+            </div>
+          </div>
+
+          <div class="dots-section-label" style="margin-top:20px;">Add a money side bet? (optional)</div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Skip this to keep Dots as a free card game. Enable it to give each dot a cash value — settled after the card game.</p>
+          <div class="dot-worth-grid">
+            <div class="dot-worth-opt selected" onclick="selectDotWorth(this, 0)" id="dot-worth-none">No money</div>
+            <div class="dot-worth-opt" onclick="selectDotWorth(this, 0.5)">$0.50/dot</div>
+            <div class="dot-worth-opt" onclick="selectDotWorth(this, 1)">$1/dot</div>
+            <div class="dot-worth-opt" onclick="selectDotWorth(this, 2)">$2/dot</div>
+            <div class="dot-worth-opt" onclick="selectDotWorth(this, 0)" id="dot-worth-custom-opt">Custom</div>
+          </div>
+          <div id="dot-worth-custom-wrap" style="display:none;margin-top:8px;">
+            <input class="field-input" type="number" id="dot-worth-custom-val" placeholder="$ per dot" style="max-width:160px;" oninput="updateDotsPreview()">
+          </div>
+
+          <div class="dots-preview" id="dots-preview">
+            <div class="dots-preview-title">Dot tracker preview</div>
+            <div class="dots-preview-body" id="dots-preview-body"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goTo(1)">← Back</button>
+        <button class="btn-primary" onclick="goTo(3)">Continue to players →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: PLAYERS -->
+    <div class="step-panel" id="panel-3">
+      <div class="panel-eyebrow">Step 3 of 4</div>
+      <div class="panel-title">Add players</div>
+      <p class="panel-sub">Add everyone in the group. Handicaps are used to calculate fair stroke adjustments on each hole.</p>
+
+      <div class="player-col-labels">
+        <div class="col-label"></div>
+        <div class="col-label">Name</div>
+        <div class="col-label">Handicap</div>
+        <div class="col-label">Email (for settlement)</div>
+        <div class="col-label"></div>
+      </div>
+
+      <div class="players-list" id="players-list">
+        <!-- Players injected by JS -->
+      </div>
+
+      <button class="add-player-btn" onclick="addPlayer()" id="add-player-btn">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Add another player
+      </button>
+
+      <div class="field-hint" style="margin-top: 14px;">Maximum 8 players on Pro plan. <a href="#" style="color: var(--green);">Upgrade to Group for 20+</a></div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goTo(2)">← Back</button>
+        <button class="btn-primary" onclick="goTo(4)">Review round →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: REVIEW -->
+    <div class="step-panel" id="panel-4">
+      <div class="panel-eyebrow">Step 4 of 4</div>
+      <div class="panel-title">Review &amp; launch</div>
+      <p class="panel-sub">Everything look right? Once you launch, players will get a link to join the round.</p>
+
+      <div class="review-section">
+        <div class="review-section-title">Round details</div>
+        <div class="review-row">
+          <span class="review-key">Course</span>
+          <span class="review-val" id="rev-course">—</span>
+        </div>
+        <div class="review-row">
+          <span class="review-key">Date &amp; time</span>
+          <span class="review-val" id="rev-datetime">—</span>
+        </div>
+        <div class="review-row">
+          <span class="review-key">Holes</span>
+          <span class="review-val" id="rev-holes">18 holes</span>
+        </div>
+        <div class="review-row">
+          <span class="review-key">Auto-settlement</span>
+          <span class="review-val green">Enabled (Venmo / PayPal)</span>
+        </div>
+      </div>
+
+      <div class="review-section">
+        <div class="review-section-title">Game formats &amp; stakes</div>
+        <div class="review-row">
+          <span class="review-key">Formats selected</span>
+          <div class="review-format-badges" id="rev-formats">—</div>
+        </div>
+        <div class="review-row">
+          <span class="review-key">Stakes per format</span>
+          <span class="review-val green" id="rev-stakes">—</span>
+        </div>
+        <div class="review-row">
+          <span class="review-key">Estimated pot range</span>
+          <span class="review-val green" id="rev-pot">—</span>
+        </div>
+      </div>
+
+      <div class="review-section">
+        <div class="review-section-title">Players</div>
+        <div class="review-players-grid" id="rev-players">—</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goTo(3)">← Back</button>
+        <button class="btn-launch" onclick="launchRound()">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Launch round
+        </button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="success-title">Round is live!</div>
+      <p class="success-sub">Your round has been created. Share the code below with your group — they can join from any device.</p>
+      <div class="round-code">
+        <div class="round-code-label">Round code</div>
+        <div class="round-code-val" id="round-code-val">SS-0000</div>
+      </div>
+      <div class="success-actions">
+        <button class="btn-share" onclick="copyCode()">Copy invite link</button>
+        <button class="btn-score" onclick="goToScorecard()">Open scorecard →</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+let currentStep = 1;
+let maxReached = 1;
+let selectedFormats = ['Skins'];
+let selectedStake = '$5';
+let selectedHoles = 18;
+let playerCount = 0;
+const avatarColors = ['pa-0','pa-1','pa-2','pa-3','pa-4','pa-5','pa-6','pa-7'];
+
+// Init with today's date
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('round-date').value = today;
+  document.getElementById('round-time').value = '08:00';
+  addPlayer('You (organizer)', '', '');
+  addPlayer('', '', '');
+  addPlayer('', '', '');
+  updateSummary();
+});
+
+function goTo(step) {
+  if (step > maxReached + 1) return;
+  if (step < 1 || step > 4) return;
+
+  document.getElementById(`panel-${currentStep}`).classList.remove('active');
+  currentStep = step;
+  maxReached = Math.max(maxReached, step);
+
+  document.getElementById(`panel-${step}`).classList.add('active');
+  document.getElementById('progress-fill').style.width = (step / 4 * 100) + '%';
+  document.getElementById('nav-step-label').textContent = `Step ${step} of 4`;
+
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`side-${i}`);
+    const bub = document.getElementById(`bubble-${i}`);
+    el.classList.remove('active', 'done', 'locked');
+    if (i === step) {
+      el.classList.add('active');
+    } else if (i < step || i <= maxReached) {
+      el.classList.add('done');
+      bub.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
+    } else {
+      el.classList.add('locked');
+      bub.textContent = i;
+    }
+  }
+
+  if (step === 4) buildReview();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleFormat(el, name) {
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) {
+    if (!selectedFormats.includes(name)) selectedFormats.push(name);
+    // Show info box
+    const info = el.getAttribute('data-info');
+    if (info) {
+      document.getElementById('info-box-title').textContent = name + ' — How it works';
+      document.getElementById('info-box-body').textContent = info;
+      document.getElementById('format-info-box').style.display = 'block';
+    }
+  } else {
+    selectedFormats = selectedFormats.filter(f => f !== name);
+    if (selectedFormats.length === 0) document.getElementById('format-info-box').style.display = 'none';
+  }
+  // Update counter badge
+  const count = selectedFormats.length;
+  const badge = document.getElementById('counter-badge');
+  badge.textContent = count === 0 ? 'None selected' : `${count} selected`;
+  badge.style.color = count === 0 ? 'var(--muted)' : 'var(--green)';
+  updateSummary();
+}
+
+function selectStake(el, val) {
+  document.querySelectorAll('.stake-opt').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedStake = val;
+  const customWrap = document.getElementById('custom-stake-wrap');
+  customWrap.style.display = val === 'Custom' ? 'block' : 'none';
+  updateSummary();
+}
+
+function selectHoles(n) {
+  selectedHoles = n;
+  document.getElementById('holes-18').classList.toggle('selected', n === 18);
+  document.getElementById('holes-9').classList.toggle('selected', n === 9);
+}
+
+function addPlayer(name = '', hcp = '', email = '') {
+  const list = document.getElementById('players-list');
+  if (list.children.length >= 8) return;
+  const idx = list.children.length;
+  const div = document.createElement('div');
+  div.className = 'player-entry';
+  div.innerHTML = `
+    <div class="player-avatar ${avatarColors[idx % 8]}">${name ? name.substring(0,2).toUpperCase() : (idx + 1)}</div>
+    <input class="player-name-input" type="text" placeholder="Player ${idx + 1} name" value="${name}" oninput="updateAvatar(this, ${idx}); updateSummary()">
+    <input class="player-hcp-input" type="number" placeholder="HCP" min="0" max="54" value="${hcp}" oninput="updateSummary()">
+    <input class="player-email-input" type="email" placeholder="email@example.com" value="${email}">
+    <button class="player-remove" onclick="removePlayer(this)" ${idx === 0 ? 'style="visibility:hidden"' : ''}>
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  `;
+  list.appendChild(div);
+  playerCount = list.children.length;
+  document.getElementById('add-player-btn').style.display = list.children.length >= 8 ? 'none' : 'flex';
+  updateSummary();
+}
+
+function removePlayer(btn) {
+  const entry = btn.closest('.player-entry');
+  entry.remove();
+  reindexPlayers();
+  updateSummary();
+}
+
+function reindexPlayers() {
+  const entries = document.querySelectorAll('.player-entry');
+  entries.forEach((entry, i) => {
+    const av = entry.querySelector('.player-avatar');
+    av.className = `player-avatar ${avatarColors[i % 8]}`;
+    const nameInput = entry.querySelector('.player-name-input');
+    if (!nameInput.value) av.textContent = (i + 1);
+    const removeBtn = entry.querySelector('.player-remove');
+    removeBtn.style.visibility = i === 0 ? 'hidden' : 'visible';
+  });
+  document.getElementById('add-player-btn').style.display = entries.length >= 8 ? 'none' : 'flex';
+}
+
+function updateAvatar(input, idx) {
+  const entry = input.closest('.player-entry');
+  const av = entry.querySelector('.player-avatar');
+  av.textContent = input.value ? input.value.substring(0,2).toUpperCase() : (idx + 1);
+}
+
+function updateSummary() {
+  const course = document.getElementById('course-name').value;
+  const date = document.getElementById('round-date').value;
+  const players = document.querySelectorAll('.player-entry').length;
+  document.getElementById('sum-course').textContent = course || '—';
+  if (date) {
+    const d = new Date(date + 'T00:00:00');
+    document.getElementById('sum-date').textContent = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  }
+  document.getElementById('sum-players').textContent = players ? `${players} players` : '—';
+  document.getElementById('sum-formats').textContent = selectedFormats.length ? selectedFormats.join(', ') : '—';
+  const stakeDisplay = selectedStake === 'Custom'
+    ? ('$' + (document.getElementById('custom-stake-val')?.value || '?'))
+    : selectedStake;
+  document.getElementById('sum-stakes').textContent = selectedStake === '—' ? '—' : `${stakeDisplay}/format`;
+}
+
+function buildReview() {
+  const course = document.getElementById('course-name').value || 'Not set';
+  const date = document.getElementById('round-date').value;
+  const time = document.getElementById('round-time').value;
+  let dateStr = '—';
+  if (date) {
+    const d = new Date(date + 'T00:00:00');
+    dateStr = d.toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric', year:'numeric' });
+    if (time) dateStr += ` at ${formatTime(time)}`;
+  }
+
+  document.getElementById('rev-course').textContent = course;
+  document.getElementById('rev-datetime').textContent = dateStr;
+  document.getElementById('rev-holes').textContent = `${selectedHoles} holes`;
+
+  const fmtContainer = document.getElementById('rev-formats');
+  if (selectedFormats.length) {
+    fmtContainer.innerHTML = selectedFormats.map(f => `<span class="fmt-badge">${f}</span>`).join('');
+  }
+
+  const stakeVal = selectedStake === 'Custom'
+    ? ('$' + (document.getElementById('custom-stake-val')?.value || '?'))
+    : selectedStake;
+  document.getElementById('rev-stakes').textContent = `${stakeVal} per player, per format`;
+
+  const entries = document.querySelectorAll('.player-entry');
+  const n = entries.length;
+  const stakeNum = parseFloat((stakeVal || '0').replace('$','')) || 0;
+  const potMin = stakeNum * n;
+  const potMax = potMin * selectedFormats.length;
+  document.getElementById('rev-pot').textContent = `$${potMin.toFixed(0)} – $${potMax.toFixed(0)}`;
+
+  const playersGrid = document.getElementById('rev-players');
+  let html = '';
+  entries.forEach((entry, i) => {
+    const name = entry.querySelector('.player-name-input').value || `Player ${i+1}`;
+    const hcp = entry.querySelector('.player-hcp-input').value || '?';
+    html += `
+      <div class="review-player">
+        <div class="review-player-left">
+          <div class="player-avatar ${avatarColors[i % 8]}">${name.substring(0,2).toUpperCase()}</div>
+          <div>
+            <div class="review-player-name">${name}</div>
+            <div class="review-player-hcp">Handicap ${hcp}</div>
+          </div>
+        </div>
+      </div>`;
+  });
+  playersGrid.innerHTML = html || '<div style="color:var(--muted);font-size:13px">No players added yet</div>';
+}
+
+function formatTime(t) {
+  const [h, m] = t.split(':');
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+}
+
+function launchRound() {
+  const code = 'SS-' + Math.floor(1000 + Math.random() * 9000);
+
+  // Collect all players
+  const playerEntries = document.querySelectorAll('.player-entry');
+  const players = [];
+  playerEntries.forEach((entry, i) => {
+    const name = entry.querySelector('.player-name-input')?.value || `Player ${i+1}`;
+    const hcp  = parseInt(entry.querySelector('.player-hcp-input')?.value) || 0;
+    players.push({ name, hcp });
+  });
+
+  // Save round data to localStorage so scorecard can read it
+  const roundData = {
+    code,
+    course: selectedCourse?.name || document.getElementById('course-name')?.value || 'Unknown Course',
+    holes: selectedCourse?.holes || null,
+    rating: selectedCourse?.rating || null,
+    slope: selectedCourse?.slope || null,
+    date: document.getElementById('round-date')?.value || '',
+    time: document.getElementById('round-time')?.value || '',
+    totalHoles: selectedHoles || 18,
+    formats: selectedFormats,
+    stake: selectedStake,
+    players,
+    timestamp: Date.now(),
+  };
+  localStorage.setItem('strokestack_active_round', JSON.stringify(roundData));
+
+  document.getElementById('round-code-val').textContent = code;
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('success-screen').classList.add('active');
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('nav-step-label').textContent = 'Round launched!';
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`side-${i}`);
+    const bub = document.getElementById(`bubble-${i}`);
+    el.classList.remove('active','done','locked');
+    el.classList.add('done');
+    bub.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
+  }
+}
+
+function copyCode() {
+  const code = document.getElementById('round-code-val').textContent;
+  const url = `https://strokestack.com/join/${code}`;
+  navigator.clipboard?.writeText(url).catch(() => {});
+  const btn = document.querySelector('.btn-share');
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy invite link', 2000);
+}
+
+// ── DOTS LOGIC ──
+let dotsEnabled = false;
+let dotsConfigOpen = true;
+let dotWorth = 0.5;
+let dotVals = { oneputt: 1, chipin: 2, sandysave: 1, birdie: 1, eagle: 3 };
+let dotRulesActive = { oneputt: true, chipin: true, sandysave: false, birdie: false, eagle: false, threeputt: false };
+let threePuttVal = 1; // flat $ per other player
+
+function setThreePuttVal(val) {
+  threePuttVal = val;
+  document.getElementById('val-threeputt').textContent = val;
+  updateDotsPreview();
+}
+
+function toggleDots(el) {
+  dotsEnabled = !dotsEnabled;
+  el.classList.toggle('selected', dotsEnabled);
+  document.getElementById('dots-config').style.display = dotsEnabled ? 'block' : 'none';
+  if (dotsEnabled) {
+    if (!selectedFormats.includes('Dots')) selectedFormats.push('Dots');
+    updateDotsPreview();
+    // Show info box
+    document.getElementById('info-box-title').textContent = 'Dots — How it works';
+    document.getElementById('info-box-body').textContent = el.getAttribute('data-info');
+    document.getElementById('format-info-box').style.display = 'block';
+  } else {
+    selectedFormats = selectedFormats.filter(f => f !== 'Dots');
+    if (selectedFormats.length === 0) document.getElementById('format-info-box').style.display = 'none';
+  }
+  const count = selectedFormats.length;
+  const badge = document.getElementById('counter-badge');
+  badge.textContent = count === 0 ? 'None selected' : `${count} selected`;
+  badge.style.color = count === 0 ? 'var(--muted)' : 'var(--green)';
+  updateSummary();
+}
+
+function toggleDotConfig() {
+  dotsConfigOpen = !dotsConfigOpen;
+  const panel = document.querySelector('.dots-config-panel');
+  const btn = document.querySelector('.dots-collapse-btn');
+  const grids = panel.querySelectorAll('.dots-rules-grid, .dot-worth-grid, .dots-preview, #dot-worth-custom-wrap, .dots-section-label');
+  grids.forEach(el => el.style.display = dotsConfigOpen ? '' : 'none');
+  btn.textContent = dotsConfigOpen ? 'Collapse ▲' : 'Expand ▼';
+}
+
+function toggleDotRule(key, el) {
+  dotRulesActive[key] = !dotRulesActive[key];
+  el.classList.toggle('active', dotRulesActive[key]);
+  updateDotsPreview();
+}
+
+function setDotVal(key, val) {
+  dotVals[key] = val;
+  document.getElementById('val-' + key).textContent = val;
+  updateDotsPreview();
+}
+
+function selectDotWorth(el, val) {
+  document.querySelectorAll('.dot-worth-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  const customWrap = document.getElementById('dot-worth-custom-wrap');
+  if (val === 0) {
+    customWrap.style.display = 'block';
+  } else {
+    dotWorth = val;
+    customWrap.style.display = 'none';
+    updateDotsPreview();
+  }
+}
+
+function updateDotsPreview() {
+  const customVal = document.getElementById('dot-worth-custom-val');
+  if (customVal && customVal.value) dotWorth = parseFloat(customVal.value) || 0.5;
+
+  const earned = [];
+  if (dotRulesActive.oneputt) earned.push({ label: 'One-putt', dots: dotVals.oneputt });
+  if (dotRulesActive.chipin)  earned.push({ label: 'Chip-in / Hole out', dots: dotVals.chipin });
+  if (dotRulesActive.sandysave) earned.push({ label: 'Sandy save', dots: dotVals.sandysave });
+  if (dotRulesActive.birdie)  earned.push({ label: 'Birdie', dots: dotVals.birdie });
+  if (dotRulesActive.eagle)   earned.push({ label: 'Eagle', dots: dotVals.eagle });
+
+  let rows = earned.map(e =>
+    `<div class="preview-row">
+      <span class="preview-label">${e.label}</span>
+      <span class="preview-val gold">+${e.dots} dot${e.dots > 1 ? 's' : ''} · $${(e.dots * dotWorth).toFixed(2)} ea.</span>
+    </div>`
+  ).join('');
+
+  if (dotRulesActive.threeputt) {
+    rows += `<div class="preview-row">
+      <span class="preview-label">Three-putt penalty</span>
+      <span class="preview-val red">$${threePuttVal.toFixed(2)} cash paid to each other player</span>
+    </div>`;
+  }
+
+  // Example scenario
+  const exampleOnePutts = dotRulesActive.oneputt ? dotVals.oneputt * 4 : 0;
+  const exampleChipins  = dotRulesActive.chipin   ? dotVals.chipin  * 1 : 0;
+  const exampleBirdies  = dotRulesActive.birdie   ? dotVals.birdie  * 2 : 0;
+  const netDots = exampleOnePutts + exampleChipins + exampleBirdies;
+  const examplePayout = (netDots * dotWorth * 3).toFixed(2);
+
+  const exampleDesc = [
+    dotRulesActive.oneputt ? '4 one-putts' : '',
+    dotRulesActive.chipin  ? '1 chip-in'   : '',
+    dotRulesActive.birdie  ? '2 birdies'   : '',
+  ].filter(Boolean).join(' + ') || 'no dots earned';
+
+  const penaltyNote = dotRulesActive.threeputt
+    ? ` · 1 three-putt = $${(threePuttVal * 3).toFixed(2)} paid out`
+    : '';
+
+  rows += `<div class="preview-row" style="margin-top:6px;padding-top:10px;border-top:1px solid var(--border);border-bottom:none;">
+    <span class="preview-label">Example: ${exampleDesc}${penaltyNote}</span>
+    <span class="preview-val gold">~$${examplePayout} won</span>
+  </div>`;
+
+  document.getElementById('dots-preview-body').innerHTML = rows;
+}
+
+function goToScorecard() {
+  // Use absolute path to avoid relative path issues
+  const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+  window.location.href = base + 'scorecard.html';
+}
+
+// ── GPS COURSE SEARCH ──
+// ═══════════════════════════════════════════════════
+//  Keys loaded from config.js — edit that file only
+// ═══════════════════════════════════════════════════
+const GOOGLE_KEY   = (typeof SS_CONFIG !== 'undefined' && SS_CONFIG.GOOGLE_KEY && SS_CONFIG.GOOGLE_KEY !== 'YOUR_GOOGLE_KEY_HERE') ? SS_CONFIG.GOOGLE_KEY : '';
+const GOLF_API_KEY = (typeof SS_CONFIG !== 'undefined' && SS_CONFIG.GOLF_API_KEY && SS_CONFIG.GOLF_API_KEY !== 'YOUR_GOLF_API_KEY_HERE') ? SS_CONFIG.GOLF_API_KEY : '';
+
+let selectedCourse = null;
+let searchTimeout  = null;
+let userLat        = null;
+let userLng        = null;
+let placesService  = null;
+let googleReady    = false;
+
+// ── HAVERSINE (miles) ──
+function haversine(la1, lo1, la2, lo2) {
+  const R = 3958.8, d2r = Math.PI / 180;
+  const dLa = (la2-la1)*d2r, dLo = (lo2-lo1)*d2r;
+  const a = Math.sin(dLa/2)**2 + Math.cos(la1*d2r)*Math.cos(la2*d2r)*Math.sin(dLo/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function fmtMi(m) {
+  return m < 0.1 ? `${Math.round(m*5280)} ft` : `${m.toFixed(1)} mi`;
+}
+
+// ── LOAD GOOGLE PLACES API DYNAMICALLY ──
+function loadGooglePlaces() {
+  if (!GOOGLE_KEY) {
+    console.warn('StrokeStack: No Google API key — using local course database');
+    return;
+  }
+  if (window.google?.maps?.places) { initPlaces(); return; }
+  const s = document.createElement('script');
+  s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&libraries=places&callback=initPlaces`;
+  s.async = true; s.defer = true;
+  s.onerror = () => {
+    console.error('Google Maps failed to load — check API key and that Places API + Maps JavaScript API are enabled in Google Cloud');
+    showApiStatus('Live course search unavailable — using local database', 'warn');
+  };
+  document.head.appendChild(s);
+}
+
+window.initPlaces = function() {
+  googleReady = true;
+  placesService = new google.maps.places.PlacesService(document.createElement('div'));
+  showApiStatus('', ''); // clear
+};
+
+function showApiStatus(msg, type) {
+  const el = document.getElementById('places-api-status');
+  if (!msg) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.style.background = type === 'warn' ? 'rgba(201,168,76,0.08)' : 'var(--green-glow)';
+  el.style.color = type === 'warn' ? 'var(--gold)' : 'var(--green)';
+  el.style.border = `1px solid ${type === 'warn' ? 'rgba(201,168,76,0.3)' : 'var(--green-border)'}`;
+  el.textContent = msg;
+}
+
+// ── INPUT HANDLER — routes to Google or local fallback ──
+function handleCourseInput(val) {
+  clearTimeout(searchTimeout);
+  const results = document.getElementById('course-results');
+  if (!val || val.length < 2) { results.style.display = 'none'; return; }
+
+  searchTimeout = setTimeout(() => {
+    if (googleReady) {
+      searchGooglePlaces(val);
+    } else {
+      searchLocalDB(val);
+    }
+  }, 280);
+}
+
+// ── GOOGLE PLACES TEXT SEARCH ──
+function searchGooglePlaces(query) {
+  const req = {
+    query: query + ' golf course',
+    type: 'establishment',
+    fields: ['name', 'geometry', 'formatted_address', 'rating', 'place_id'],
+  };
+
+  // Include location bias if we have GPS
+  if (userLat !== null) {
+    req.location = new google.maps.LatLng(userLat, userLng);
+    req.radius = 80000; // 50 miles
+  }
+
+  placesService.textSearch(req, (results, status) => {
+    if (status !== google.maps.places.PlacesServiceStatus.OK || !results.length) {
+      searchLocalDB(query);
+      return;
+    }
+
+    // Filter to golf courses only
+    const courses = results.slice(0, 8).map(p => ({
+      name: p.name,
+      address: p.formatted_address,
+      placeId: p.place_id,
+      rating: p.rating,
+      lat: p.geometry?.location?.lat(),
+      lng: p.geometry?.location?.lng(),
+      _fromGoogle: true,
+    }));
+
+    showGoogleResults(courses, query);
+  });
+}
+
+// ── GOOGLE NEARBY SEARCH (GPS button) ──
+function searchGoogleNearby(lat, lng) {
+  if (!googleReady) {
+    searchLocalNearby(lat, lng);
+    return;
+  }
+
+  const req = {
+    location: new google.maps.LatLng(lat, lng),
+    radius: 48280, // 30 miles
+    type: 'golf_course',
+    keyword: 'golf course',
+  };
+
+  placesService.nearbySearch(req, (results, status) => {
+    if (status !== google.maps.places.PlacesServiceStatus.OK || !results.length) {
+      searchLocalNearby(lat, lng);
+      return;
+    }
+
+    const courses = results.slice(0, 8).map(p => ({
+      name: p.name,
+      address: p.vicinity,
+      placeId: p.place_id,
+      rating: p.rating,
+      lat: p.geometry?.location?.lat(),
+      lng: p.geometry?.location?.lng(),
+      _dist: haversine(lat, lng, p.geometry.location.lat(), p.geometry.location.lng()),
+      _fromGoogle: true,
+    })).sort((a, b) => a._dist - b._dist);
+
+    showNearbyResults(courses, true);
+  });
+}
+
+// ── LOCAL DB FALLBACK ──
+const LOCAL_COURSES = [
+  // ── CAPE CORAL ──
+  { name:'Cape Coral Golf Club',          address:'Cape Coral, FL', lat:26.5629,lng:-81.9495, rating:'72.1/124', holes:[{par:4,yds:385,hcp:7},{par:3,yds:162,hcp:15},{par:5,yds:521,hcp:3},{par:4,yds:398,hcp:1},{par:4,yds:356,hcp:11},{par:3,yds:178,hcp:17},{par:5,yds:508,hcp:5},{par:4,yds:412,hcp:9},{par:4,yds:367,hcp:13},{par:4,yds:394,hcp:8},{par:3,yds:155,hcp:16},{par:5,yds:534,hcp:2},{par:4,yds:401,hcp:4},{par:4,yds:369,hcp:12},{par:3,yds:186,hcp:18},{par:5,yds:512,hcp:6},{par:4,yds:388,hcp:10},{par:4,yds:421,hcp:14}]},
+  { name:'Coral Oaks Golf Course',         address:'Cape Coral, FL', lat:26.6032,lng:-81.9918, rating:'71.8/126', holes:[{par:4,yds:369,hcp:9},{par:5,yds:494,hcp:5},{par:3,yds:156,hcp:17},{par:4,yds:378,hcp:3},{par:4,yds:342,hcp:13},{par:3,yds:163,hcp:15},{par:5,yds:488,hcp:1},{par:4,yds:391,hcp:7},{par:4,yds:355,hcp:11},{par:4,yds:374,hcp:8},{par:3,yds:148,hcp:18},{par:5,yds:502,hcp:4},{par:4,yds:382,hcp:2},{par:4,yds:349,hcp:14},{par:3,yds:161,hcp:16},{par:5,yds:497,hcp:6},{par:4,yds:363,hcp:12},{par:4,yds:395,hcp:10}]},
+  { name:'Palmetto-Pine Country Club',     address:'Cape Coral, FL', lat:26.5412,lng:-81.9721, rating:'70.4/119', holes:[{par:4,yds:348,hcp:11},{par:5,yds:476,hcp:7},{par:3,yds:144,hcp:17},{par:4,yds:361,hcp:3},{par:4,yds:328,hcp:15},{par:3,yds:152,hcp:13},{par:5,yds:479,hcp:5},{par:4,yds:367,hcp:1},{par:4,yds:339,hcp:9},{par:4,yds:355,hcp:8},{par:3,yds:138,hcp:18},{par:5,yds:485,hcp:4},{par:4,yds:369,hcp:2},{par:4,yds:334,hcp:14},{par:3,yds:148,hcp:16},{par:5,yds:481,hcp:6},{par:4,yds:344,hcp:12},{par:4,yds:372,hcp:10}]},
+  // ── FORT MYERS ──
+  { name:'Eastwood Golf Course',           address:'Fort Myers, FL', lat:26.6128,lng:-81.7784, rating:'71.2/121', holes:[{par:4,yds:372,hcp:9},{par:5,yds:489,hcp:5},{par:3,yds:151,hcp:17},{par:4,yds:381,hcp:3},{par:4,yds:345,hcp:13},{par:3,yds:159,hcp:15},{par:5,yds:492,hcp:1},{par:4,yds:388,hcp:7},{par:4,yds:351,hcp:11},{par:4,yds:369,hcp:8},{par:3,yds:144,hcp:18},{par:5,yds:498,hcp:4},{par:4,yds:378,hcp:2},{par:4,yds:342,hcp:14},{par:3,yds:156,hcp:16},{par:5,yds:494,hcp:6},{par:4,yds:361,hcp:12},{par:4,yds:389,hcp:10}]},
+  { name:'The Club at Gateway',            address:'Fort Myers, FL', lat:26.5522,lng:-81.7021, rating:'72.4/128', holes:[{par:4,yds:391,hcp:7},{par:5,yds:511,hcp:3},{par:3,yds:168,hcp:15},{par:4,yds:402,hcp:1},{par:4,yds:368,hcp:11},{par:3,yds:181,hcp:17},{par:5,yds:518,hcp:5},{par:4,yds:419,hcp:9},{par:4,yds:375,hcp:13},{par:4,yds:398,hcp:8},{par:3,yds:162,hcp:16},{par:5,yds:522,hcp:2},{par:4,yds:408,hcp:4},{par:4,yds:371,hcp:14},{par:3,yds:188,hcp:18},{par:5,yds:515,hcp:6},{par:4,yds:394,hcp:12},{par:4,yds:425,hcp:10}]},
+  { name:'Fort Myers Country Club',        address:'Fort Myers, FL', lat:26.6445,lng:-81.8712, rating:'71.5/122', holes:[{par:4,yds:368,hcp:9},{par:5,yds:484,hcp:5},{par:3,yds:154,hcp:17},{par:4,yds:377,hcp:3},{par:4,yds:341,hcp:13},{par:3,yds:162,hcp:15},{par:5,yds:488,hcp:1},{par:4,yds:385,hcp:7},{par:4,yds:352,hcp:11},{par:4,yds:372,hcp:8},{par:3,yds:147,hcp:18},{par:5,yds:492,hcp:4},{par:4,yds:381,hcp:2},{par:4,yds:346,hcp:14},{par:3,yds:158,hcp:16},{par:5,yds:489,hcp:6},{par:4,yds:362,hcp:12},{par:4,yds:388,hcp:10}]},
+  { name:'Fort Myers Country Club',        address:'Fort Myers, FL', lat:26.6445,lng:-81.8712, rating:'71.5/122', holes:[{par:4,yds:368,hcp:9},{par:5,yds:484,hcp:5},{par:3,yds:154,hcp:17},{par:4,yds:377,hcp:3},{par:4,yds:341,hcp:13},{par:3,yds:162,hcp:15},{par:5,yds:488,hcp:1},{par:4,yds:385,hcp:7},{par:4,yds:352,hcp:11},{par:4,yds:372,hcp:8},{par:3,yds:147,hcp:18},{par:5,yds:492,hcp:4},{par:4,yds:381,hcp:2},{par:4,yds:346,hcp:14},{par:3,yds:158,hcp:16},{par:5,yds:489,hcp:6},{par:4,yds:362,hcp:12},{par:4,yds:388,hcp:10}]},
+  // ── ESTERO / BONITA SPRINGS ──
+  { name:'Pelican Sound Golf & River Club',address:'Estero, FL',     lat:26.4388,lng:-81.8302, rating:'70.9/122', holes:[{par:4,yds:362,hcp:11},{par:5,yds:486,hcp:7},{par:3,yds:148,hcp:17},{par:4,yds:374,hcp:3},{par:4,yds:338,hcp:15},{par:3,yds:161,hcp:13},{par:5,yds:491,hcp:5},{par:4,yds:381,hcp:1},{par:4,yds:349,hcp:9},{par:4,yds:368,hcp:8},{par:3,yds:142,hcp:18},{par:5,yds:499,hcp:4},{par:4,yds:377,hcp:2},{par:4,yds:345,hcp:14},{par:3,yds:155,hcp:16},{par:5,yds:493,hcp:6},{par:4,yds:358,hcp:12},{par:4,yds:386,hcp:10}]},
+  { name:'Bonita Bay Club (East)',         address:'Bonita Springs, FL',lat:26.3488,lng:-81.7812, rating:'72.8/130', holes:[{par:4,yds:395,hcp:7},{par:5,yds:518,hcp:3},{par:3,yds:172,hcp:15},{par:4,yds:408,hcp:1},{par:4,yds:374,hcp:11},{par:3,yds:185,hcp:17},{par:5,yds:524,hcp:5},{par:4,yds:421,hcp:9},{par:4,yds:381,hcp:13},{par:4,yds:402,hcp:8},{par:3,yds:165,hcp:16},{par:5,yds:528,hcp:2},{par:4,yds:414,hcp:4},{par:4,yds:378,hcp:14},{par:3,yds:191,hcp:18},{par:5,yds:521,hcp:6},{par:4,yds:398,hcp:12},{par:4,yds:428,hcp:10}]},
+  { name:'Spring Run Golf Club',           address:'Bonita Springs, FL',lat:26.3621,lng:-81.7945, rating:'70.2/118', holes:[{par:4,yds:348,hcp:11},{par:5,yds:472,hcp:7},{par:3,yds:142,hcp:17},{par:4,yds:361,hcp:3},{par:4,yds:328,hcp:15},{par:3,yds:149,hcp:13},{par:5,yds:476,hcp:5},{par:4,yds:368,hcp:1},{par:4,yds:338,hcp:9},{par:4,yds:354,hcp:8},{par:3,yds:136,hcp:18},{par:5,yds:479,hcp:4},{par:4,yds:364,hcp:2},{par:4,yds:332,hcp:14},{par:3,yds:145,hcp:16},{par:5,yds:474,hcp:6},{par:4,yds:345,hcp:12},{par:4,yds:371,hcp:10}]},
+  // ── NAPLES ──
+  { name:'Tiburón Golf Club (Black)',      address:'Naples, FL',     lat:26.2285,lng:-81.7948, rating:'73.5/138', holes:[{par:4,yds:411,hcp:5},{par:4,yds:432,hcp:1},{par:3,yds:201,hcp:15},{par:5,yds:548,hcp:9},{par:4,yds:388,hcp:11},{par:4,yds:420,hcp:3},{par:3,yds:188,hcp:17},{par:5,yds:562,hcp:7},{par:4,yds:399,hcp:13},{par:4,yds:417,hcp:4},{par:3,yds:172,hcp:16},{par:5,yds:539,hcp:8},{par:4,yds:405,hcp:2},{par:4,yds:378,hcp:14},{par:3,yds:195,hcp:18},{par:5,yds:551,hcp:6},{par:4,yds:424,hcp:12},{par:4,yds:444,hcp:10}]},
+  { name:'Tiburón Golf Club (Gold)',       address:'Naples, FL',     lat:26.2285,lng:-81.7948, rating:'72.1/131', holes:[{par:4,yds:392,hcp:7},{par:4,yds:411,hcp:3},{par:3,yds:181,hcp:15},{par:5,yds:528,hcp:9},{par:4,yds:372,hcp:11},{par:4,yds:401,hcp:1},{par:3,yds:172,hcp:17},{par:5,yds:544,hcp:5},{par:4,yds:384,hcp:13},{par:4,yds:398,hcp:4},{par:3,yds:155,hcp:16},{par:5,yds:519,hcp:8},{par:4,yds:388,hcp:2},{par:4,yds:361,hcp:14},{par:3,yds:178,hcp:18},{par:5,yds:534,hcp:6},{par:4,yds:407,hcp:12},{par:4,yds:425,hcp:10}]},
+  { name:'Naples Grande Golf Club',        address:'Naples, FL',     lat:26.1812,lng:-81.7624, rating:'72.9/132', holes:[{par:4,yds:401,hcp:7},{par:5,yds:522,hcp:3},{par:3,yds:178,hcp:15},{par:4,yds:414,hcp:1},{par:4,yds:381,hcp:11},{par:3,yds:192,hcp:17},{par:5,yds:528,hcp:5},{par:4,yds:426,hcp:9},{par:4,yds:388,hcp:13},{par:4,yds:408,hcp:8},{par:3,yds:171,hcp:16},{par:5,yds:534,hcp:2},{par:4,yds:418,hcp:4},{par:4,yds:384,hcp:14},{par:3,yds:198,hcp:18},{par:5,yds:527,hcp:6},{par:4,yds:402,hcp:12},{par:4,yds:431,hcp:10}]},
+  { name:'Lely Resort Golf (Mustang)',     address:'Naples, FL',     lat:26.0921,lng:-81.6812, rating:'72.3/128', holes:[{par:4,yds:388,hcp:9},{par:5,yds:508,hcp:5},{par:3,yds:162,hcp:17},{par:4,yds:399,hcp:3},{par:4,yds:365,hcp:13},{par:3,yds:178,hcp:15},{par:5,yds:514,hcp:1},{par:4,yds:412,hcp:7},{par:4,yds:374,hcp:11},{par:4,yds:394,hcp:8},{par:3,yds:158,hcp:18},{par:5,yds:518,hcp:4},{par:4,yds:404,hcp:2},{par:4,yds:368,hcp:14},{par:3,yds:181,hcp:16},{par:5,yds:511,hcp:6},{par:4,yds:388,hcp:12},{par:4,yds:416,hcp:10}]},
+  // ── MARCO ISLAND ──
+  { name:'Hammock Bay Golf Club',          address:'Marco Island, FL',lat:25.9612,lng:-81.6838, rating:'71.8/128', holes:[{par:4,yds:378,hcp:9},{par:5,yds:498,hcp:11},{par:3,yds:158,hcp:17},{par:4,yds:382,hcp:5},{par:4,yds:344,hcp:13},{par:3,yds:168,hcp:15},{par:5,yds:489,hcp:3},{par:4,yds:396,hcp:1},{par:4,yds:361,hcp:7},{par:4,yds:372,hcp:8},{par:3,yds:149,hcp:18},{par:5,yds:511,hcp:2},{par:4,yds:389,hcp:4},{par:4,yds:354,hcp:12},{par:3,yds:172,hcp:16},{par:5,yds:501,hcp:6},{par:4,yds:375,hcp:14},{par:4,yds:408,hcp:10}]},
+  // ── SARASOTA ──
+  { name:'TPC Tampa Bay',                  address:'Lutz, FL',       lat:28.1488,lng:-82.4612, rating:'72.8/130', holes:[{par:4,yds:394,hcp:7},{par:5,yds:514,hcp:3},{par:3,yds:171,hcp:15},{par:4,yds:405,hcp:1},{par:4,yds:371,hcp:11},{par:3,yds:184,hcp:17},{par:5,yds:521,hcp:5},{par:4,yds:418,hcp:9},{par:4,yds:378,hcp:13},{par:4,yds:401,hcp:8},{par:3,yds:164,hcp:16},{par:5,yds:524,hcp:2},{par:4,yds:411,hcp:4},{par:4,yds:374,hcp:14},{par:3,yds:191,hcp:18},{par:5,yds:518,hcp:6},{par:4,yds:396,hcp:12},{par:4,yds:424,hcp:10}]},
+  { name:'Laurel Oak Country Club',        address:'Sarasota, FL',   lat:27.3812,lng:-82.4521, rating:'72.1/126', holes:[{par:4,yds:382,hcp:9},{par:5,yds:502,hcp:5},{par:3,yds:161,hcp:17},{par:4,yds:393,hcp:3},{par:4,yds:358,hcp:13},{par:3,yds:174,hcp:15},{par:5,yds:508,hcp:1},{par:4,yds:406,hcp:7},{par:4,yds:365,hcp:11},{par:4,yds:389,hcp:8},{par:3,yds:154,hcp:18},{par:5,yds:512,hcp:4},{par:4,yds:398,hcp:2},{par:4,yds:362,hcp:14},{par:3,yds:181,hcp:16},{par:5,yds:505,hcp:6},{par:4,yds:384,hcp:12},{par:4,yds:411,hcp:10}]},
+  // ── CENTRAL FLORIDA ──
+  { name:'Streamsong (Red)',               address:'Bowling Green, FL',lat:27.6198,lng:-81.6701, rating:'73.4/132', holes:[{par:4,yds:388,hcp:7},{par:3,yds:175,hcp:15},{par:4,yds:415,hcp:3},{par:5,yds:529,hcp:9},{par:4,yds:362,hcp:11},{par:3,yds:192,hcp:17},{par:5,yds:542,hcp:1},{par:4,yds:398,hcp:5},{par:4,yds:411,hcp:13},{par:4,yds:425,hcp:2},{par:3,yds:186,hcp:16},{par:5,yds:537,hcp:8},{par:4,yds:401,hcp:4},{par:4,yds:376,hcp:14},{par:3,yds:168,hcp:18},{par:5,yds:548,hcp:6},{par:4,yds:392,hcp:10},{par:4,yds:418,hcp:12}]},
+  { name:'Streamsong (Blue)',              address:'Bowling Green, FL',lat:27.6201,lng:-81.6698, rating:'74.1/136', holes:[{par:4,yds:401,hcp:5},{par:3,yds:188,hcp:15},{par:4,yds:428,hcp:1},{par:5,yds:542,hcp:9},{par:4,yds:374,hcp:11},{par:3,yds:204,hcp:17},{par:5,yds:556,hcp:3},{par:4,yds:411,hcp:7},{par:4,yds:424,hcp:13},{par:4,yds:438,hcp:2},{par:3,yds:199,hcp:16},{par:5,yds:549,hcp:8},{par:4,yds:414,hcp:4},{par:4,yds:388,hcp:14},{par:3,yds:211,hcp:18},{par:5,yds:561,hcp:6},{par:4,yds:404,hcp:10},{par:4,yds:431,hcp:12}]},
+  // ── PONTE VEDRA / JACKSONVILLE ──
+  { name:'TPC Sawgrass (Stadium)',         address:'Ponte Vedra, FL',lat:30.1963,lng:-81.3953, rating:'74.9/135', holes:[{par:4,yds:423,hcp:3},{par:5,yds:532,hcp:11},{par:3,yds:177,hcp:17},{par:4,yds:384,hcp:7},{par:4,yds:466,hcp:1},{par:4,yds:393,hcp:9},{par:4,yds:442,hcp:5},{par:3,yds:219,hcp:13},{par:5,yds:583,hcp:15},{par:4,yds:424,hcp:4},{par:5,yds:558,hcp:12},{par:4,yds:358,hcp:16},{par:3,yds:181,hcp:18},{par:4,yds:467,hcp:2},{par:4,yds:449,hcp:6},{par:5,yds:523,hcp:14},{par:3,yds:137,hcp:10},{par:4,yds:462,hcp:8}]},
+  // ── BUCKET LIST ──
+  { name:'Pebble Beach Golf Links',        address:'Pebble Beach, CA',lat:36.5686,lng:-121.9481, rating:'74.9/143', holes:[{par:4,yds:381,hcp:9},{par:5,yds:502,hcp:13},{par:4,yds:388,hcp:3},{par:4,yds:331,hcp:17},{par:3,yds:188,hcp:15},{par:5,yds:516,hcp:1},{par:3,yds:107,hcp:7},{par:4,yds:431,hcp:11},{par:4,yds:481,hcp:5},{par:4,yds:446,hcp:6},{par:4,yds:380,hcp:16},{par:3,yds:202,hcp:12},{par:4,yds:399,hcp:8},{par:5,yds:573,hcp:2},{par:4,yds:396,hcp:14},{par:4,yds:402,hcp:4},{par:3,yds:178,hcp:18},{par:5,yds:543,hcp:10}]},
+  { name:'Augusta National Golf Club',     address:'Augusta, GA',    lat:33.5021,lng:-82.0207, rating:'76.2/137', holes:[{par:4,yds:445,hcp:1},{par:5,yds:575,hcp:13},{par:4,yds:350,hcp:15},{par:3,yds:240,hcp:5},{par:4,yds:455,hcp:3},{par:3,yds:180,hcp:17},{par:4,yds:450,hcp:9},{par:5,yds:570,hcp:7},{par:4,yds:460,hcp:11},{par:4,yds:495,hcp:2},{par:4,yds:505,hcp:4},{par:3,yds:155,hcp:18},{par:5,yds:510,hcp:6},{par:4,yds:440,hcp:8},{par:5,yds:530,hcp:10},{par:3,yds:170,hcp:16},{par:4,yds:440,hcp:12},{par:4,yds:465,hcp:14}]},
+];
+
+function searchLocalDB(query) {
+  const q = query.toLowerCase();
+  let matches = LOCAL_COURSES.filter(c =>
+    c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q)
+  );
+  if (userLat !== null) {
+    matches = matches
+      .map(c => ({...c, _dist: haversine(userLat, userLng, c.lat, c.lng)}))
+      .sort((a, b) => a._dist - b._dist);
+  }
+  showLocalResults(matches, query);
+}
+
+function searchLocalNearby(lat, lng) {
+  const sorted = LOCAL_COURSES
+    .map(c => ({...c, _dist: haversine(lat, lng, c.lat, c.lng)}))
+    .sort((a, b) => a._dist - b._dist)
+    .slice(0, 12); // Show 12 nearest instead of 6
+  showNearbyResults(sorted, false);
+}
+
+// ── RESULT RENDERERS ──
+function showGoogleResults(courses, query) {
+  const results = document.getElementById('course-results');
+  results.style.display = 'block';
+  results.innerHTML = `
+    <div class="results-header">
+      <span>🔍 ${courses.length} courses found</span>
+      <span style="color:var(--green);font-size:9px;">via Google</span>
+    </div>
+    ${courses.map(c => courseRow(c)).join('')}
+    <div class="results-footer" onclick="manualCourse('${query.replace(/'/g,"\\'")}')">
+      Can't find it? Use "${query}" →
+    </div>`;
+}
+
+function showLocalResults(courses, query) {
+  const results = document.getElementById('course-results');
+  if (!courses.length) {
+    results.style.display = 'block';
+    results.innerHTML = `
+      <div class="results-header">No courses found for "${query}"</div>
+      <div class="results-footer" onclick="manualCourse('${query.replace(/'/g,"\\'")}')">
+        Use "${query}" as course name →
+      </div>`;
+    return;
+  }
+  results.style.display = 'block';
+  results.innerHTML = `
+    <div class="results-header">
+      <span>${courses.length} result${courses.length !== 1 ? 's' : ''}</span>
+      <span style="color:var(--muted);font-size:9px;">local database</span>
+    </div>
+    ${courses.map(c => courseRow(c)).join('')}
+    <div class="results-footer" onclick="manualCourse('${query.replace(/'/g,"\\'")}')">
+      Not listed? Use "${query}" as course name →
+    </div>`;
+}
+
+function showNearbyResults(courses, fromGoogle) {
+  const results = document.getElementById('course-results');
+  results.style.display = 'block';
+  results.innerHTML = `
+    <div class="results-header">
+      <span>📍 ${courses.length} courses near you</span>
+      <span style="color:${fromGoogle?'var(--green)':'var(--muted)'};font-size:9px;">${fromGoogle?'via Google':'local database'}</span>
+    </div>
+    ${courses.map(c => courseRow(c)).join('')}`;
+}
+
+function courseRow(c) {
+  const distStr = c._dist != null ? `· ${fmtMi(c._dist)} away` : '';
+  const hasCard = !!(c.holes && c.holes.length);
+  const safeName = (c.name || '').replace(/'/g, "\\'");
+  const safePid  = (c.placeId || '').replace(/'/g, "\\'");
+  return `<div class="course-result-row" onclick="selectCourse('${safeName}','${safePid}')">
+    <div class="crr-icon">⛳</div>
+    <div class="crr-info">
+      <div class="crr-name">${c.name}</div>
+      <div class="crr-meta">
+        ${c.address || ''}
+        ${distStr}
+        ${c.rating ? `· ⭐ ${c.rating}` : ''}
+        ${hasCard ? `· <span style="color:var(--green)">scorecard ✓</span>` : ''}
+      </div>
+    </div>
+    <div class="crr-right">
+      <div class="crr-arrow">→</div>
+    </div>
+  </div>`;
+}
+
+// ── COURSE SELECTION ──
+function selectCourse(name, placeId) {
+  console.log('selectCourse called:', name, 'placeId:', placeId);
+  console.log('GOLF_API_KEY set:', GOLF_API_KEY ? 'YES - ' + GOLF_API_KEY.substring(0,8) + '...' : 'NO');
+  document.getElementById('course-results').style.display = 'none';
+  document.getElementById('location-status').style.display = 'none';
+  document.getElementById('course-name').value = name;
+
+  // Check local DB first (has full scorecard)
+  const local = LOCAL_COURSES.find(c => c.name === name);
+  console.log('Found in local DB:', local ? 'YES' : 'NO');
+  if (local) {
+    selectedCourse = local;
+    updateSummary();
+    showScorecardPreview(local);
+    return;
+  }
+
+  // Try Golf Course API for scorecard data
+  console.log('Calling Golf API...');
+  if (GOLF_API_KEY && GOLF_API_KEY !== 'YOUR_GOLF_API_KEY_HERE') {
+    fetchGolfAPIScorecard(name, placeId);
+  } else {
+    console.warn('No Golf API key set — showing placeholder');
+    selectedCourse = { name, address: '', holes: null };
+    updateSummary();
+    showPlaceholderScorecard(name);
+  }
+}
+
+// ── GOLF COURSE API (golfcourseapi.com) ──
+async function fetchGolfAPIScorecard(name, placeId) {
+  showScorecardLoading(name);
+  try {
+    console.log('Fetching scorecard for:', name);
+
+    const query = encodeURIComponent(name);
+
+    // Try direct first, then fall back to CORS proxy
+    let data = null;
+
+    // Method 1: Direct with Authorization header
+    try {
+      const res = await fetch(
+        `https://api.golfcourseapi.com/v1/search?search_query=${query}`,
+        { headers: { 'Authorization': `Key ${GOLF_API_KEY}` } }
+      );
+      if (res.ok) data = await res.json();
+    } catch(e) {
+      console.log('Direct fetch blocked, trying proxy...');
+    }
+
+    // Method 2: CORS proxy fallback
+    if (!data) {
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://api.golfcourseapi.com/v1/search?search_query=${query}&key=${GOLF_API_KEY}`)}`;
+      const res = await fetch(proxyUrl);
+      if (res.ok) data = await res.json();
+    }
+
+    if (!data) throw new Error('All fetch methods failed');
+
+    console.log('Golf API response:', JSON.stringify(data).substring(0, 300));
+
+    const course = data.courses?.[0];
+    if (!course) throw new Error('No course found');
+
+    const tees = course.tees?.male ||
+                 course.tees?.Male ||
+                 course.tees?.blue ||
+                 course.tees?.white ||
+                 Object.values(course.tees || {})[0] || [];
+
+    const teeSet = Array.isArray(tees) ? tees[0] : tees;
+    const holeData = teeSet?.holes || course.holes || [];
+
+    console.log('Holes found:', holeData.length);
+
+    const holes = holeData.map(h => ({
+      par: h.par || 4,
+      yds: h.yardage || h.yards || h.length || h.distance || 0,
+      hcp: h.handicap || h.stroke_index || h.hcp || 0,
+    }));
+
+    selectedCourse = {
+      name: course.club_name || course.name || name,
+      address: `${course.location?.city || ''}, ${course.location?.state || ''}`.trim().replace(/^,|,$/g, ''),
+      rating: teeSet?.course_rating || teeSet?.rating || null,
+      slope: teeSet?.slope_rating || teeSet?.slope || null,
+      holes,
+    };
+
+    updateSummary();
+    if (holes.length >= 9) {
+      showScorecardPreview(selectedCourse);
+    } else {
+      console.warn('Not enough holes:', holes.length);
+      showPlaceholderScorecard(name);
+    }
+
+  } catch (e) {
+    console.error('Golf API error:', e.message);
+    selectedCourse = { name, address: '', holes: null };
+    updateSummary();
+    showPlaceholderScorecard(name);
+  }
+}
+
+function showScorecardLoading(name) {
+  document.getElementById('scorecard-preview').style.display = 'block';
+  document.getElementById('scorecard-selected-course').textContent = name;
+  document.getElementById('scorecard-table').innerHTML = `
+    <tr><td colspan="21" style="padding:20px;text-align:center;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:13px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6-8.5"/></svg>
+        Loading scorecard…
+      </div>
+    </td></tr>`;
+}
+
+function showPlaceholderScorecard(name) {
+  document.getElementById('scorecard-preview').style.display = 'block';
+  document.getElementById('scorecard-selected-course').textContent = `${name} · Scorecard not in database`;
+  document.getElementById('scorecard-table').innerHTML = `
+    <tr><td colspan="21" style="padding:16px 12px;font-size:12px;color:var(--muted);line-height:1.6;">
+      No scorecard found for this course. Scores will still be tracked per hole —
+      add your Golf Course API key in the code to enable automatic scorecard loading for any course worldwide.
+    </td></tr>`;
+}
+
+function manualCourse(name) {
+  selectCourse(name, '');
+}
+
+// ── GPS LOCATE ──
+function locateMe() {
+  const statusEl   = document.getElementById('location-status');
+  const statusText = document.getElementById('location-status-text');
+  const btn        = document.getElementById('locate-btn');
+  const input      = document.getElementById('course-name');
+
+  // Spin the icon
+  btn.querySelector('svg').style.animation = 'spin .8s linear infinite';
+  btn.querySelector('svg').style.stroke = 'var(--green)';
+  btn.style.pointerEvents = 'none';
+  statusEl.style.display  = 'flex';
+  statusText.textContent  = 'Detecting your location…';
+  input.placeholder = 'Finding courses near you…';
+
+  const done = (lat, lng, label) => {
+    userLat = lat; userLng = lng;
+    btn.querySelector('svg').style.animation = '';
+    btn.querySelector('svg').style.stroke = 'var(--green)';
+    btn.style.pointerEvents = 'auto';
+    input.placeholder = 'Search for a course…';
+    statusText.textContent = label;
+
+    if (googleReady) {
+      searchGoogleNearby(lat, lng);
+    } else {
+      searchLocalNearby(lat, lng);
+    }
+  };
+
+  if (!navigator.geolocation) {
+    done(26.5629, -81.9495, '📍 GPS unavailable — showing Cape Coral courses');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => done(pos.coords.latitude, pos.coords.longitude, '📍 Showing courses near you'),
+    ()  => done(26.5629, -81.9495, '📍 Demo mode — Cape Coral, FL'),
+    { timeout: 7000, maximumAge: 120000, enableHighAccuracy: true }
+  );
+}
+
+// ── SCORECARD PREVIEW ──
+function showScorecardPreview(course) {
+  document.getElementById('scorecard-preview').style.display = 'block';
+  const ratingStr = course.rating && course.slope
+    ? ` · Rating ${course.rating} · Slope ${course.slope}` : '';
+  document.getElementById('scorecard-selected-course').textContent = course.name + ratingStr;
+
+  const lStyle = `padding:5px 8px;font-size:10px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;`;
+  const cStyle = (i) => {
+    const bg = i%2===0?'background:var(--card);':'background:var(--card2);';
+    return `padding:5px 6px;text-align:center;font-size:11px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);${bg}`;
+  };
+  const subS = `padding:5px 8px;font-size:11px;font-weight:500;color:var(--green);background:rgba(45,204,126,.07);border-right:1px solid var(--border);border-bottom:1px solid var(--border);`;
+  const totS = `padding:5px 8px;font-size:11px;font-weight:500;color:var(--green);background:rgba(45,204,126,.12);border-bottom:1px solid var(--border);`;
+
+  const rows = { hole:[], par:[], yds:[], hcp:[] };
+  Object.keys(rows).forEach(k => rows[k].push(`<td style="${lStyle}">${k.toUpperCase()}</td>`));
+
+  let oP=0,iP=0,oY=0,iY=0;
+  course.holes.forEach((h,i) => {
+    const pColor = h.par===3?'color:#60a5fa;':h.par===5?'color:var(--green);':'color:var(--text);';
+    rows.hole.push(`<td style="${cStyle(i)}color:var(--muted);">${i+1}</td>`);
+    rows.par.push(`<td style="${cStyle(i)}${pColor}font-weight:500;">${h.par}</td>`);
+    rows.yds.push(`<td style="${cStyle(i)}">${h.yds}</td>`);
+    rows.hcp.push(`<td style="${cStyle(i)}color:var(--muted);font-size:10px;">${h.hcp||'—'}</td>`);
+    if(i<9){oP+=h.par;oY+=h.yds;}else{iP+=h.par;iY+=h.yds;}
+    if(i===8){
+      rows.hole.push(`<td style="${subS}">OUT</td>`);
+      rows.par.push(`<td style="${subS}">${oP}</td>`);
+      rows.yds.push(`<td style="${subS}">${oY}</td>`);
+      rows.hcp.push(`<td style="${subS}">—</td>`);
+    }
+  });
+  rows.hole.push(`<td style="${subS}">IN</td>`,`<td style="${totS}">TOT</td>`);
+  rows.par.push(`<td style="${subS}">${iP}</td>`,`<td style="${totS}">${oP+iP}</td>`);
+  rows.yds.push(`<td style="${subS}">${iY}</td>`,`<td style="${totS}">${oY+iY}</td>`);
+  rows.hcp.push(`<td style="${subS}">—</td>`,`<td style="${totS}">—</td>`);
+
+  document.getElementById('scorecard-hole-row').innerHTML = rows.hole.join('');
+  document.getElementById('scorecard-par-row').innerHTML  = rows.par.join('');
+  document.getElementById('scorecard-yds-row').innerHTML  = rows.yds.join('');
+
+  let hcpRow = document.getElementById('scorecard-hcp-row');
+  if (!hcpRow) {
+    hcpRow = document.createElement('tr');
+    hcpRow.id = 'scorecard-hcp-row';
+    document.querySelector('#scorecard-table thead').appendChild(hcpRow);
+  }
+  hcpRow.innerHTML = rows.hcp.join('');
+
+  setTimeout(() => {
+    document.getElementById('scorecard-preview').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }, 100);
+}
+
+function clearCourse() {
+  selectedCourse = null;
+  document.getElementById('course-name').value = '';
+  document.getElementById('scorecard-preview').style.display = 'none';
+  document.getElementById('location-status').style.display   = 'none';
+  document.getElementById('course-results').style.display    = 'none';
+  const hcpRow = document.getElementById('scorecard-hcp-row');
+  if (hcpRow) hcpRow.remove();
+  updateSummary();
+  document.getElementById('course-name').focus();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  const results = document.getElementById('course-results');
+  const input   = document.getElementById('course-name');
+  const btn     = document.getElementById('locate-btn');
+  if (!results.contains(e.target) && e.target !== input && !btn.contains(e.target)) {
+    results.style.display = 'none';
+  }
+});
+
+// Inject shared styles for results + spin animation
+const _s = document.createElement('style');
+_s.textContent = `
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .results-header {
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px 7px;font-size:10px;font-weight:500;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);
+    border-bottom:1px solid var(--border);
+  }
+  .results-footer {
+    padding:10px 14px;font-size:12px;color:var(--green);
+    border-top:1px solid var(--border);cursor:pointer;
+    transition:background .15s;
+  }
+  .results-footer:hover { background:var(--green-glow); }
+`;
+document.head.appendChild(_s);
+
+// Kick off Google Places load
+loadGooglePlaces();
+
+
+// ── COURSE DATABASE ──
+// coords: [lat, lng] for real distance calculation
+const COURSE_DB = [
+  { name:'Cape Coral Golf Club', city:'Cape Coral, FL', rating:'72.1', slope:'124', coords:[26.5629,-81.9495],
+    holes:[{par:4,yds:385,hcp:7},{par:3,yds:162,hcp:15},{par:5,yds:521,hcp:3},{par:4,yds:398,hcp:1},{par:4,yds:356,hcp:11},{par:3,yds:178,hcp:17},{par:5,yds:508,hcp:5},{par:4,yds:412,hcp:9},{par:4,yds:367,hcp:13},{par:4,yds:394,hcp:8},{par:3,yds:155,hcp:16},{par:5,yds:534,hcp:2},{par:4,yds:401,hcp:4},{par:4,yds:369,hcp:12},{par:3,yds:186,hcp:18},{par:5,yds:512,hcp:6},{par:4,yds:388,hcp:10},{par:4,yds:421,hcp:14}]},
+  { name:'Coral Oaks Golf Course', city:'Cape Coral, FL', rating:'71.8', slope:'126', coords:[26.6032,-81.9918],
+    holes:[{par:4,yds:369,hcp:9},{par:5,yds:494,hcp:5},{par:3,yds:156,hcp:17},{par:4,yds:378,hcp:3},{par:4,yds:342,hcp:13},{par:3,yds:163,hcp:15},{par:5,yds:488,hcp:1},{par:4,yds:391,hcp:7},{par:4,yds:355,hcp:11},{par:4,yds:374,hcp:8},{par:3,yds:148,hcp:18},{par:5,yds:502,hcp:4},{par:4,yds:382,hcp:2},{par:4,yds:349,hcp:14},{par:3,yds:161,hcp:16},{par:5,yds:497,hcp:6},{par:4,yds:363,hcp:12},{par:4,yds:395,hcp:10}]},
+  { name:'Palmetto-Pine Country Club', city:'Cape Coral, FL', rating:'70.4', slope:'119', coords:[26.5412,-81.9721],
+    holes:[{par:4,yds:348,hcp:11},{par:5,yds:476,hcp:7},{par:3,yds:144,hcp:17},{par:4,yds:361,hcp:3},{par:4,yds:328,hcp:15},{par:3,yds:152,hcp:13},{par:5,yds:479,hcp:5},{par:4,yds:367,hcp:1},{par:4,yds:339,hcp:9},{par:4,yds:355,hcp:8},{par:3,yds:138,hcp:18},{par:5,yds:485,hcp:4},{par:4,yds:369,hcp:2},{par:4,yds:334,hcp:14},{par:3,yds:148,hcp:16},{par:5,yds:481,hcp:6},{par:4,yds:344,hcp:12},{par:4,yds:372,hcp:10}]},
+  { name:'Pelican Sound Golf & River Club', city:'Estero, FL', rating:'70.9', slope:'122', coords:[26.4388,-81.8302],
+    holes:[{par:4,yds:362,hcp:11},{par:5,yds:486,hcp:7},{par:3,yds:148,hcp:17},{par:4,yds:374,hcp:3},{par:4,yds:338,hcp:15},{par:3,yds:161,hcp:13},{par:5,yds:491,hcp:5},{par:4,yds:381,hcp:1},{par:4,yds:349,hcp:9},{par:4,yds:368,hcp:8},{par:3,yds:142,hcp:18},{par:5,yds:499,hcp:4},{par:4,yds:377,hcp:2},{par:4,yds:345,hcp:14},{par:3,yds:155,hcp:16},{par:5,yds:493,hcp:6},{par:4,yds:358,hcp:12},{par:4,yds:386,hcp:10}]},
+  { name:'Tiburón Golf Club (Black)', city:'Naples, FL', rating:'73.5', slope:'138', coords:[26.2285,-81.7948],
+    holes:[{par:4,yds:411,hcp:5},{par:4,yds:432,hcp:1},{par:3,yds:201,hcp:15},{par:5,yds:548,hcp:9},{par:4,yds:388,hcp:11},{par:4,yds:420,hcp:3},{par:3,yds:188,hcp:17},{par:5,yds:562,hcp:7},{par:4,yds:399,hcp:13},{par:4,yds:417,hcp:4},{par:3,yds:172,hcp:16},{par:5,yds:539,hcp:8},{par:4,yds:405,hcp:2},{par:4,yds:378,hcp:14},{par:3,yds:195,hcp:18},{par:5,yds:551,hcp:6},{par:4,yds:424,hcp:12},{par:4,yds:444,hcp:10}]},
+  { name:'Hammock Bay Golf Club', city:'Marco Island, FL', rating:'71.8', slope:'128', coords:[25.9612,-81.6838],
+    holes:[{par:4,yds:378,hcp:9},{par:5,yds:498,hcp:11},{par:3,yds:158,hcp:17},{par:4,yds:382,hcp:5},{par:4,yds:344,hcp:13},{par:3,yds:168,hcp:15},{par:5,yds:489,hcp:3},{par:4,yds:396,hcp:1},{par:4,yds:361,hcp:7},{par:4,yds:372,hcp:8},{par:3,yds:149,hcp:18},{par:5,yds:511,hcp:2},{par:4,yds:389,hcp:4},{par:4,yds:354,hcp:12},{par:3,yds:172,hcp:16},{par:5,yds:501,hcp:6},{par:4,yds:375,hcp:14},{par:4,yds:408,hcp:10}]},
+  { name:'Streamsong (Red)', city:'Bowling Green, FL', rating:'73.4', slope:'132', coords:[27.6198,-81.6701],
+    holes:[{par:4,yds:388,hcp:7},{par:3,yds:175,hcp:15},{par:4,yds:415,hcp:3},{par:5,yds:529,hcp:9},{par:4,yds:362,hcp:11},{par:3,yds:192,hcp:17},{par:5,yds:542,hcp:1},{par:4,yds:398,hcp:5},{par:4,yds:411,hcp:13},{par:4,yds:425,hcp:2},{par:3,yds:186,hcp:16},{par:5,yds:537,hcp:8},{par:4,yds:401,hcp:4},{par:4,yds:376,hcp:14},{par:3,yds:168,hcp:18},{par:5,yds:548,hcp:6},{par:4,yds:392,hcp:10},{par:4,yds:418,hcp:12}]},
+  { name:'TPC Sawgrass (Stadium)', city:'Ponte Vedra, FL', rating:'74.9', slope:'135', coords:[30.1963,-81.3953],
+    holes:[{par:4,yds:423,hcp:3},{par:5,yds:532,hcp:11},{par:3,yds:177,hcp:17},{par:4,yds:384,hcp:7},{par:4,yds:466,hcp:1},{par:4,yds:393,hcp:9},{par:4,yds:442,hcp:5},{par:3,yds:219,hcp:13},{par:5,yds:583,hcp:15},{par:4,yds:424,hcp:4},{par:5,yds:558,hcp:12},{par:4,yds:358,hcp:16},{par:3,yds:181,hcp:18},{par:4,yds:467,hcp:2},{par:4,yds:449,hcp:6},{par:5,yds:523,hcp:14},{par:3,yds:137,hcp:10},{par:4,yds:462,hcp:8}]},
+  { name:'Pebble Beach Golf Links', city:'Pebble Beach, CA', rating:'74.9', slope:'143', coords:[36.5686,-121.9481],
+    holes:[{par:4,yds:381,hcp:9},{par:5,yds:502,hcp:13},{par:4,yds:388,hcp:3},{par:4,yds:331,hcp:17},{par:3,yds:188,hcp:15},{par:5,yds:516,hcp:1},{par:3,yds:107,hcp:7},{par:4,yds:431,hcp:11},{par:4,yds:481,hcp:5},{par:4,yds:446,hcp:6},{par:4,yds:380,hcp:16},{par:3,yds:202,hcp:12},{par:4,yds:399,hcp:8},{par:5,yds:573,hcp:2},{par:4,yds:396,hcp:14},{par:4,yds:402,hcp:4},{par:3,yds:178,hcp:18},{par:5,yds:543,hcp:10}]},
+  { name:'Augusta National Golf Club', city:'Augusta, GA', rating:'76.2', slope:'137', coords:[33.5021,-82.0207],
+    holes:[{par:4,yds:445,hcp:1},{par:5,yds:575,hcp:13},{par:4,yds:350,hcp:15},{par:3,yds:240,hcp:5},{par:4,yds:455,hcp:3},{par:3,yds:180,hcp:17},{par:4,yds:450,hcp:9},{par:5,yds:570,hcp:7},{par:4,yds:460,hcp:11},{par:4,yds:495,hcp:2},{par:4,yds:505,hcp:4},{par:3,yds:155,hcp:18},{par:5,yds:510,hcp:6},{par:4,yds:440,hcp:8},{par:5,yds:530,hcp:10},{par:3,yds:170,hcp:16},{par:4,yds:440,hcp:12},{par:4,yds:465,hcp:14}]},
+];
+
+// ── HAVERSINE DISTANCE (miles) ──
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function fmtMiles(m) {
+  return m < 0.5 ? `${Math.round(m * 5280)} ft away` : `${m.toFixed(1)} mi away`;
+}
+
+// ── SEARCH ──
+function searchCourses(query) {
+  clearTimeout(searchTimeout);
+  const results = document.getElementById('course-results');
+  if (!query || query.length < 2) { results.style.display = 'none'; return; }
+  searchTimeout = setTimeout(() => {
+    const q = query.toLowerCase();
+    let matches = COURSE_DB.filter(c =>
+      c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q)
+    );
+    // Sort by distance if we have location
+    if (userLat !== null) {
+      matches = matches.map(c => ({
+        ...c,
+        _dist: haversine(userLat, userLng, c.coords[0], c.coords[1])
+      })).sort((a, b) => a._dist - b._dist);
+    }
+    showCourseResults(matches, query);
+  }, 250);
+}
+
+// ── GPS LOCATE ──
+function locateMe() {
+  const statusEl   = document.getElementById('location-status');
+  const statusText = document.getElementById('location-status-text');
+  const locateBtn  = document.getElementById('locate-btn');
+  const input      = document.getElementById('course-name');
+
+  // Animate button
+  locateBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
+  locateBtn.style.pointerEvents = 'none';
+  statusEl.style.display = 'flex';
+  statusText.textContent = 'Detecting your location…';
+  input.placeholder = 'Finding courses near you…';
+
+  if (!navigator.geolocation) {
+    finishLocate(null, null, 'GPS not supported on this device');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      finishLocate(userLat, userLng, null);
+    },
+    err => {
+      // Graceful fallback — use Cape Coral coords for demo
+      userLat = 26.5629;
+      userLng = -81.9495;
+      finishLocate(userLat, userLng, 'demo');
+    },
+    { timeout: 7000, maximumAge: 120000, enableHighAccuracy: true }
+  );
+}
+
+function finishLocate(lat, lng, err) {
+  const statusText = document.getElementById('location-status-text');
+  const locateBtn  = document.getElementById('locate-btn');
+  const input      = document.getElementById('course-name');
+
+  // Restore button
+  locateBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/></svg>`;
+  locateBtn.style.pointerEvents = 'auto';
+  input.placeholder = 'Search for a course…';
+
+  if (err === 'GPS not supported on this device') {
+    statusText.textContent = '⚠️ GPS not available — try searching by name';
+    return;
+  }
+
+  // Calculate real distances and sort
+  const nearby = COURSE_DB
+    .map(c => ({ ...c, _dist: haversine(lat, lng, c.coords[0], c.coords[1]) }))
+    .sort((a, b) => a._dist - b._dist)
+    .slice(0, 6);
+
+  const city = nearby[0] ? nearby[0].city : 'your location';
+  statusText.innerHTML = err === 'demo'
+    ? `📍 Demo mode — showing courses near Cape Coral, FL`
+    : `📍 ${nearby.length} courses found near you`;
+
+  showNearbyResults(nearby);
+}
+
+function showNearbyResults(courses) {
+  const results = document.getElementById('course-results');
+  results.style.display = 'block';
+  results.innerHTML = `
+    <div style="padding:10px 14px 6px;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      Courses near you
+    </div>
+    ${courses.map(c => courseResultRow(c, c._dist != null ? fmtMiles(c._dist) : c.dist)).join('')}`;
+}
+
+function showCourseResults(courses, query) {
+  const results = document.getElementById('course-results');
+  if (!courses.length) {
+    results.style.display = 'block';
+    results.innerHTML = `
+      <div style="padding:16px;text-align:center;">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">No courses found for "${query}"</div>
+        <button onclick="manualCourse('${query}')" style="font-size:12px;color:var(--green);background:var(--green-glow);border:1px solid var(--green-border);border-radius:6px;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+          Use "${query}" as course name →
+        </button>
+      </div>`;
+    return;
+  }
+  results.style.display = 'block';
+  results.innerHTML = `
+    <div style="padding:10px 14px 6px;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">
+      ${courses.length} result${courses.length !== 1 ? 's' : ''}
+    </div>
+    ${courses.map(c => courseResultRow(c, c._dist != null ? fmtMiles(c._dist) : null)).join('')}`;
+}
+
+function courseResultRow(c, dist) {
+  const hasCard = !!(c.holes && c.holes.length);
+  return `<div class="course-result-row" onclick="selectCourse('${c.name.replace(/'/g,"\\'")}')">
+    <div class="crr-icon">⛳</div>
+    <div class="crr-info">
+      <div class="crr-name">${c.name}</div>
+      <div class="crr-meta">${c.city}${dist ? ' · ' + dist : ''}${hasCard ? ' · <span style="color:var(--green)">scorecard ✓</span>' : ''}</div>
+    </div>
+    <div class="crr-right">
+      ${c.rating ? `<div class="crr-rating">⭐ ${c.rating} / ${c.slope}</div>` : ''}
+      <div class="crr-arrow">→</div>
+    </div>
+  </div>`;
+}
+
+
+
+
+function showScorecardPreview(course) {
+  document.getElementById('scorecard-preview').style.display = 'block';
+  document.getElementById('scorecard-selected-course').textContent =
+    `${course.name} · Rating ${course.rating} · Slope ${course.slope}`;
+
+  const holeRow = document.getElementById('scorecard-hole-row');
+  const parRow  = document.getElementById('scorecard-par-row');
+  const ydsRow  = document.getElementById('scorecard-yds-row');
+
+  const cellStyle = (extra='') =>
+    `padding:5px 6px;text-align:center;font-size:11px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);${extra}`;
+  const labelStyle =
+    `padding:5px 8px;font-size:10px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);border-right:1px solid var(--border);`;
+  const subtotalStyle =
+    `padding:5px 8px;font-size:11px;font-weight:500;color:var(--green);background:rgba(45,204,126,.06);border-right:1px solid var(--border);border-bottom:1px solid var(--border);`;
+  const totalStyle =
+    `padding:5px 8px;font-size:11px;font-weight:500;color:var(--green);background:rgba(45,204,126,.1);border-bottom:1px solid var(--border);`;
+
+  const holeCells = [`<td style="${labelStyle}">Hole</td>`];
+  const parCells  = [`<td style="${labelStyle}">Par</td>`];
+  const ydsCells  = [`<td style="${labelStyle}">Yds</td>`];
+  const hcpCells  = [`<td style="${labelStyle}">HCP</td>`];
+
+  let outPar = 0, inPar = 0, outYds = 0, inYds = 0;
+
+  course.holes.forEach((h, i) => {
+    const bg = i % 2 === 0 ? 'background:var(--card);' : 'background:var(--card2);';
+    const parColor = h.par === 3 ? 'color:#60a5fa;' : h.par === 5 ? 'color:var(--green);' : 'color:var(--text);';
+    holeCells.push(`<td style="${cellStyle(bg)}color:var(--muted);">${i+1}</td>`);
+    parCells.push(`<td style="${cellStyle(bg + parColor)}font-weight:500;">${h.par}</td>`);
+    ydsCells.push(`<td style="${cellStyle(bg)}">${h.yds}</td>`);
+    hcpCells.push(`<td style="${cellStyle(bg)}color:var(--muted);font-size:10px;">${h.hcp}</td>`);
+
+    if (i < 9) { outPar += h.par; outYds += h.yds; }
+    else        { inPar  += h.par; inYds  += h.yds; }
+
+    if (i === 8) {
+      holeCells.push(`<td style="${subtotalStyle}">OUT</td>`);
+      parCells.push(`<td style="${subtotalStyle}">${outPar}</td>`);
+      ydsCells.push(`<td style="${subtotalStyle}">${outYds}</td>`);
+      hcpCells.push(`<td style="${subtotalStyle}">—</td>`);
+    }
+  });
+
+  holeCells.push(`<td style="${subtotalStyle}">IN</td>`,  `<td style="${totalStyle}">TOT</td>`);
+  parCells.push(`<td style="${subtotalStyle}">${inPar}</td>`,  `<td style="${totalStyle}">${outPar+inPar}</td>`);
+  ydsCells.push(`<td style="${subtotalStyle}">${inYds}</td>`,  `<td style="${totalStyle}">${outYds+inYds}</td>`);
+  hcpCells.push(`<td style="${subtotalStyle}">—</td>`, `<td style="${totalStyle}">—</td>`);
+
+  holeRow.innerHTML = holeCells.join('');
+  parRow.innerHTML  = parCells.join('');
+  ydsRow.innerHTML  = ydsCells.join('');
+
+  // Add HCP row
+  let hcpRow = document.getElementById('scorecard-hcp-row');
+  if (!hcpRow) {
+    hcpRow = document.createElement('tr');
+    hcpRow.id = 'scorecard-hcp-row';
+    document.querySelector('#scorecard-table thead').appendChild(hcpRow);
+  }
+  hcpRow.innerHTML = hcpCells.join('');
+}
+
+function clearCourse() {
+  selectedCourse = null;
+  document.getElementById('course-name').value = '';
+  document.getElementById('scorecard-preview').style.display = 'none';
+  document.getElementById('location-status').style.display = 'none';
+  document.getElementById('course-results').style.display = 'none';
+  // Reset HCP row if it exists
+  const hcpRow = document.getElementById('scorecard-hcp-row');
+  if (hcpRow) hcpRow.remove();
+  updateSummary();
+  document.getElementById('course-name').focus();
+}
+
+// Close results on outside click
+document.addEventListener('click', e => {
+  const results = document.getElementById('course-results');
+  const input   = document.getElementById('course-name');
+  const btn     = document.getElementById('locate-btn');
+  if (!results.contains(e.target) && e.target !== input && e.target !== btn) {
+    results.style.display = 'none';
+  }
+});
+
+// Add spin animation for GPS loader
+const spinStyle = document.createElement('style');
+spinStyle.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+document.head.appendChild(spinStyle);
+
+
+</script>
+</body>
+</html>
