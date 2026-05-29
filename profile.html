@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>My Bag — StrokeStack</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black:  #090c0b;
+  --dark:   #0f1512;
+  --card:   #141a17;
+  --card2:  #1a2320;
+  --card3:  #212e28;
+  --green:  #2dcc7e;
+  --green-dim: #1a7d4c;
+  --green-glow: rgba(45,204,126,0.12);
+  --green-border: rgba(45,204,126,0.28);
+  --gold:   #c9a84c;
+  --gold-glow: rgba(201,168,76,0.1);
+  --gold-border: rgba(201,168,76,0.28);
+  --red:    #f87171;
+  --text:   #edeae2;
+  --muted:  #6b7d74;
+  --border: rgba(255,255,255,0.06);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .3;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 60px;
+  background: rgba(9,12,11,0.92); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: .05em; color: var(--text); text-decoration: none; }
+.nav-logo span { color: var(--green); }
+.nav-save {
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  background: var(--green); color: var(--black); border: none;
+  padding: 7px 18px; border-radius: 7px; cursor: pointer; transition: all .2s;
+}
+.nav-save:hover { background: #3ddc8e; }
+.nav-save.saved { background: var(--green-dim); color: var(--green); }
+
+/* HERO */
+.hero {
+  padding: 28px 20px 20px; position: relative;
+  background: linear-gradient(180deg, rgba(45,204,126,0.04) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+}
+.hero-eyebrow {
+  font-size: 10px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--green); margin-bottom: 6px;
+}
+.hero-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: .02em;
+  color: var(--text); line-height: 1; margin-bottom: 6px;
+}
+.hero-sub { font-size: 13px; color: var(--muted); line-height: 1.6; max-width: 420px; }
+
+/* PROFILE STRIP */
+.profile-strip {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  background: var(--dark);
+}
+.profile-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--green-glow); border: 2px solid var(--green-border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--green);
+  flex-shrink: 0;
+}
+.profile-info { flex: 1; }
+.profile-name-input {
+  background: transparent; border: none; outline: none;
+  font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 500;
+  color: var(--text); width: 100%;
+}
+.profile-name-input::placeholder { color: var(--muted); }
+.profile-hcp-row { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.profile-hcp-label { font-size: 11px; color: var(--muted); }
+.profile-hcp-input {
+  width: 56px; background: var(--card2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 8px; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; color: var(--text); outline: none; text-align: center;
+  transition: border-color .2s;
+}
+.profile-hcp-input:focus { border-color: var(--green-border); }
+.profile-stat {
+  text-align: center; flex-shrink: 0;
+}
+.profile-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--text); line-height: 1; }
+.profile-stat-label { font-size: 10px; color: var(--muted); letter-spacing: .04em; }
+
+/* SECTION */
+.section { padding: 0 20px; margin-top: 24px; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: 11px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.section-action {
+  font-size: 11px; color: var(--green); cursor: pointer; background: none;
+  border: none; font-family: 'DM Sans', sans-serif; transition: opacity .2s;
+}
+.section-action:hover { opacity: .7; }
+
+/* BAG VISUAL */
+.bag-summary {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px; margin-bottom: 16px;
+  display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none;
+}
+.bag-summary::-webkit-scrollbar { display: none; }
+.bag-mini {
+  flex-shrink: 0; text-align: center; cursor: pointer;
+  transition: transform .15s;
+}
+.bag-mini:hover { transform: translateY(-2px); }
+.bag-mini-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin: 0 auto 4px;
+  border: 1px solid var(--border); background: var(--card2);
+  transition: all .2s;
+}
+.bag-mini.has-yds .bag-mini-icon {
+  border-color: var(--green-border); background: var(--green-glow);
+}
+.bag-mini-name { font-size: 9px; color: var(--muted); margin-bottom: 1px; font-weight: 500; }
+.bag-mini-yds { font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: var(--green); }
+.bag-mini.has-yds .bag-mini-name { color: var(--text); }
+
+/* CLUB LIST */
+.club-category { margin-bottom: 20px; }
+.club-cat-label {
+  font-size: 10px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 0 4px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.club-cat-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.club-row {
+  display: grid; grid-template-columns: 36px 1fr auto auto;
+  align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 6px;
+  transition: all .2s; cursor: default;
+}
+.club-row:hover { border-color: rgba(255,255,255,.1); }
+.club-row.active { border-color: var(--green-border); background: rgba(45,204,126,.04); }
+.club-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; background: var(--card2); flex-shrink: 0;
+}
+.club-info { min-width: 0; }
+.club-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.club-type { font-size: 11px; color: var(--muted); }
+.club-yds-wrap { display: flex; align-items: center; gap: 6px; }
+.club-yds-input {
+  width: 64px; background: var(--card2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 8px; font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 500; color: var(--text); outline: none;
+  text-align: center; transition: border-color .2s;
+}
+.club-yds-input:focus { border-color: var(--green-border); }
+.club-yds-input::placeholder { color: var(--muted); font-size: 12px; }
+.club-yds-label { font-size: 11px; color: var(--muted); }
+.club-toggle {
+  width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s;
+  border: 1px solid var(--border); background: var(--card2);
+  color: var(--muted);
+}
+.club-toggle:hover { border-color: var(--red); color: var(--red); }
+.club-row.active .club-toggle { border-color: var(--green-border); background: var(--green-glow); color: var(--green); }
+.club-toggle svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* SHOT SHAPE */
+.shot-shape-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.shape-opt {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 8px; text-align: center;
+  cursor: pointer; transition: all .2s;
+}
+.shape-opt:hover { border-color: rgba(255,255,255,.12); }
+.shape-opt.selected { border-color: var(--green-border); background: var(--green-glow); }
+.shape-icon { font-size: 22px; margin-bottom: 4px; }
+.shape-name { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.shape-desc { font-size: 10px; color: var(--muted); }
+.shape-opt.selected .shape-name { color: var(--green); }
+
+/* PLAY STATS */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-input-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px;
+}
+.stat-input-label { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+.stat-input-field {
+  width: 100%; background: var(--card2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 9px 12px; font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 500; color: var(--text); outline: none;
+  transition: border-color .2s;
+}
+.stat-input-field:focus { border-color: var(--green-border); }
+.stat-input-field::placeholder { color: var(--muted); font-size: 13px; }
+
+/* SMART BAG PREVIEW */
+.smart-preview {
+  background: var(--card); border: 1px solid var(--green-border);
+  border-radius: 14px; padding: 16px; margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--card) 60%, rgba(45,204,126,0.04) 100%);
+}
+.smart-preview-title {
+  font-size: 11px; font-weight: 500; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--green); margin-bottom: 12px;
+}
+.smart-scenario { display: flex; flex-direction: column; gap: 8px; }
+.smart-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; background: var(--card2); border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.smart-dist { font-size: 13px; font-weight: 500; color: var(--text); }
+.smart-club {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 500; color: var(--green);
+}
+.smart-club-icon { font-size: 14px; }
+
+/* BOTTOM NAV */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  display: flex; gap: 0;
+  background: rgba(9,12,11,0.95); backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border); height: 64px;
+}
+.bottom-tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; font-size: 9px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer; transition: all .2s;
+  border-bottom: 2px solid transparent; text-decoration: none;
+}
+.bottom-tab.active { color: var(--green); border-bottom-color: var(--green); }
+.bottom-tab svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%) translateY(12px);
+  background: var(--card2); border: 1px solid var(--green-border);
+  color: var(--green); font-size: 13px; font-weight: 500;
+  padding: 10px 22px; border-radius: 100px; z-index: 300;
+  opacity: 0; transition: all .3s; white-space: nowrap; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ANIMATIONS */
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.club-category { animation: fadeUp .4s ease both; }
+.club-category:nth-child(1){animation-delay:.05s}
+.club-category:nth-child(2){animation-delay:.1s}
+.club-category:nth-child(3){animation-delay:.15s}
+.club-category:nth-child(4){animation-delay:.2s}
+/* ── PROFILE HEADER ── */
+.profile-header { position:relative; overflow:hidden; padding-bottom:0; }
+.profile-header-bg {
+  position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(45,204,126,0.08) 0%, transparent 100%);
+  pointer-events:none;
+}
+.profile-header-content { position:relative; z-index:1; padding:20px 16px 0; }
+.profile-avatar-wrap { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+.profile-avatar-lg {
+  width:72px; height:72px; border-radius:50%;
+  background:rgba(45,204,126,.15); color:var(--green);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:.05em;
+  border:2px solid var(--green-border);
+}
+.profile-edit-btn {
+  width:34px; height:34px; border-radius:9px;
+  background:var(--card2); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .2s; color:var(--muted);
+}
+.profile-edit-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; }
+.profile-edit-btn:hover { border-color:var(--green-border); color:var(--green); }
+.profile-name-display { font-size:22px; font-weight:500; color:var(--text); margin-bottom:2px; }
+.profile-handle-display { font-size:13px; color:var(--green); margin-bottom:6px; }
+.profile-bio-display { font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:16px; }
+
+/* Edit form */
+.profile-edit-form { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.profile-edit-input {
+  width:100%; background:var(--card2); border:1px solid var(--border);
+  border-radius:10px; padding:10px 14px;
+  font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text);
+  outline:none; transition:border-color .2s; resize:none;
+}
+.profile-edit-input:focus { border-color:var(--green-border); }
+.profile-edit-input::placeholder { color:var(--muted); }
+.profile-edit-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.profile-save-btn {
+  padding:11px; background:var(--green); color:var(--black);
+  border:none; border-radius:10px; font-family:'DM Sans',sans-serif;
+  font-size:14px; font-weight:500; cursor:pointer; transition:all .2s;
+}
+.profile-save-btn:hover { background:#3ddc8e; }
+
+/* Stats strip */
+.profile-stats-strip {
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:14px; margin-bottom:0;
+}
+.pss-item { text-align:center; flex:1; }
+.pss-val { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:.03em; color:var(--text); line-height:1; }
+.pss-label { font-size:10px; color:var(--muted); margin-top:2px; letter-spacing:.04em; }
+.pss-divider { width:1px; height:32px; background:var(--border); }
+
+/* ── TABS ── */
+.profile-tabs {
+  display:flex; border-bottom:1px solid var(--border);
+  background:var(--black); position:sticky; top:60px; z-index:99;
+  padding:0 4px;
+}
+.profile-tab {
+  flex:1; padding:12px 8px; text-align:center;
+  font-size:12px; font-weight:500; color:var(--muted);
+  cursor:pointer; transition:all .2s; border-bottom:2px solid transparent;
+}
+.profile-tab.active { color:var(--green); border-bottom-color:var(--green); }
+.profile-panel { display:none; }
+.profile-panel.active { display:block; }
+
+/* ── STAT CARDS ── */
+.stat-cards-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  padding:14px 16px 0;
+}
+.stat-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:16px; animation:fadeUp .4s ease both;
+}
+.stat-card.highlight { border-color:var(--green-border); background:linear-gradient(135deg,var(--card) 70%,rgba(45,204,126,.05) 100%); }
+.stat-card.gold { border-color:var(--gold-border); background:linear-gradient(135deg,var(--card) 70%,rgba(201,168,76,.05) 100%); }
+.sc-icon { font-size:22px; margin-bottom:8px; }
+.sc-val { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:.03em; color:var(--text); line-height:1; }
+.sc-val.green { color:var(--green); }
+.sc-val.gold { color:var(--gold); }
+.sc-val.red { color:var(--red); }
+.sc-label { font-size:11px; color:var(--muted); margin-top:3px; }
+.sc-sub { font-size:10px; color:var(--muted); margin-top:2px; }
+
+/* ── MONEY CARD ── */
+.money-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:16px;
+}
+.money-card-empty { font-size:13px; color:var(--muted); text-align:center; padding:12px 0; }
+.money-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.money-row:last-child { border-bottom:none; }
+.money-row-left { display:flex; align-items:center; gap:8px; color:var(--muted); }
+.money-row-val { font-weight:500; }
+.money-pos { color:var(--green); }
+.money-neg { color:var(--red); }
+
+/* ── SCORING BREAKDOWN ── */
+.scoring-breakdown {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; overflow:hidden;
+}
+.sb-row { display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); }
+.sb-row:last-child { border-bottom:none; }
+.sb-label { font-size:13px; color:var(--muted); flex:1; }
+.sb-bar-wrap { width:120px; height:6px; background:var(--card2); border-radius:3px; margin:0 12px; }
+.sb-bar { height:6px; border-radius:3px; transition:width .6s ease; }
+.sb-bar.eagle { background:var(--gold); }
+.sb-bar.birdie { background:var(--green); }
+.sb-bar.par { background:#60a5fa; }
+.sb-bar.bogey { background:var(--red); }
+.sb-bar.double { background:#7f1d1d; }
+.sb-count { font-size:12px; font-weight:500; color:var(--text); min-width:28px; text-align:right; }
+
+/* ── ROUNDS LIST ── */
+.rounds-list { padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+.round-history-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:14px 16px; cursor:pointer;
+  transition:border-color .2s; animation:fadeUp .3s ease both;
+}
+.round-history-card:hover { border-color:var(--green-border); }
+.rhc-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; }
+.rhc-course { font-size:15px; font-weight:500; color:var(--text); }
+.rhc-date { font-size:11px; color:var(--muted); }
+.rhc-score { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:.03em; line-height:1; }
+.rhc-score.pos { color:var(--green); }
+.rhc-score.neg { color:var(--red); }
+.rhc-score.even { color:var(--muted); }
+.rhc-chips { display:flex; gap:5px; flex-wrap:wrap; }
+.rhc-chip { font-size:10px; font-weight:500; padding:3px 8px; border-radius:100px; background:var(--card2); border:1px solid var(--border); color:var(--muted); }
+.rhc-chip.win { background:var(--green-glow); border-color:var(--green-border); color:var(--green); }
+
+/* ── EMPTY STATE ── */
+.empty-state { padding:48px 24px; text-align:center; }
+.empty-icon { font-size:48px; margin-bottom:12px; }
+.empty-title { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:.03em; color:var(--text); margin-bottom:6px; }
+.empty-sub { font-size:14px; color:var(--muted); line-height:1.6; max-width:280px; margin:0 auto 20px; }
+.empty-cta { display:inline-block; padding:10px 24px; background:var(--green); color:var(--black); border-radius:100px; font-size:14px; font-weight:500; text-decoration:none; transition:all .2s; }
+.empty-cta:hover { background:#3ddc8e; }
+
+/* ── SETTINGS ── */
+.settings-list { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.settings-row { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; gap:12px; }
+.settings-row:last-child { border-bottom:none; }
+.settings-row:hover { background:var(--card2); }
+.settings-row-left { display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+.settings-row-icon { font-size:18px; flex-shrink:0; }
+.settings-row-title { font-size:14px; font-weight:500; color:var(--text); }
+.settings-row-sub { font-size:11px; color:var(--muted); margin-top:1px; }
+.settings-row-arrow { color:var(--muted); font-size:14px; flex-shrink:0; }
+.settings-toggle { width:44px; height:26px; border-radius:13px; background:var(--card2); border:1px solid var(--border); position:relative; cursor:pointer; transition:all .25s; flex-shrink:0; }
+.settings-toggle.on { background:var(--green); border-color:var(--green); }
+.toggle-knob { position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--muted); transition:all .25s; }
+.settings-toggle.on .toggle-knob { left:21px; background:#fff; }
+.settings-inline-input { background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-family:'DM Mono',monospace; font-size:12px; color:var(--green); outline:none; width:120px; flex-shrink:0; }
+
+/* ── HANDICAP CALCULATOR ── */
+.hcp-calc-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:16px;
+}
+.hcp-calc-sub { font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:14px; }
+.hcp-scores-grid {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:14px;
+}
+.hcp-score-input {
+  background:var(--card2); border:1px solid var(--border);
+  border-radius:8px; padding:8px 4px; text-align:center;
+  font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text);
+  outline:none; width:100%; transition:border-color .2s;
+}
+.hcp-score-input:focus { border-color:var(--green-border); }
+.hcp-score-input::placeholder { color:var(--muted); font-size:12px; }
+.hcp-calc-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.hcp-calc-field { display:flex; flex-direction:column; gap:4px; }
+.hcp-calc-label { font-size:10px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.hcp-calc-input {
+  background:var(--card2); border:1px solid var(--border);
+  border-radius:10px; padding:10px 12px;
+  font-family:'DM Sans',sans-serif; font-size:15px; color:var(--text);
+  outline:none; transition:border-color .2s; width:100%;
+}
+.hcp-calc-input:focus { border-color:var(--green-border); }
+.hcp-calc-btn {
+  width:100%; padding:13px; background:var(--green); color:var(--black);
+  border:none; border-radius:10px; font-family:'DM Sans',sans-serif;
+  font-size:14px; font-weight:500; cursor:pointer; transition:all .2s; margin-bottom:12px;
+}
+.hcp-calc-btn:hover { background:#3ddc8e; }
+.hcp-result {
+  background:var(--green-glow); border:1px solid var(--green-border);
+  border-radius:12px; padding:16px; text-align:center;
+  animation:fadeUp .3s ease;
+}
+.hcp-result-label { font-size:10px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--green); margin-bottom:6px; }
+.hcp-result-val { font-family:'Bebas Neue',sans-serif; font-size:56px; letter-spacing:.03em; color:var(--green); line-height:1; }
+.hcp-result-sub { font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="nav-logo">Stroke<span>Stack</span></a>
+  <button class="nav-save" id="save-btn" onclick="saveBag()">Save bag</button>
+</nav>
+
+<!-- PROFILE HEADER -->
+<div class="profile-header">
+  <div class="profile-header-bg"></div>
+  <div class="profile-header-content">
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar-lg" id="profile-avatar">TB</div>
+      <button class="profile-edit-btn" onclick="toggleEditMode()">
+        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+    </div>
+    <div class="profile-identity">
+      <div class="profile-name-display" id="profile-name-display">Your Name</div>
+      <div class="profile-handle-display" id="profile-handle-display">@username</div>
+      <div class="profile-bio-display" id="profile-bio-display">Weekend warrior. Always looking for action.</div>
+    </div>
+
+    <!-- Edit form (hidden by default) -->
+    <div class="profile-edit-form" id="profile-edit-form" style="display:none;">
+      <input class="profile-edit-input" id="profile-name-input" type="text" placeholder="Your name" maxlength="24">
+      <input class="profile-edit-input" id="profile-handle-input" type="text" placeholder="@username" maxlength="20">
+      <textarea class="profile-edit-input" id="profile-bio-input" placeholder="Your bio..." rows="2" maxlength="140"></textarea>
+      <div class="profile-edit-row">
+        <input class="profile-edit-input profile-edit-half" id="profile-hcp-input" type="number" placeholder="Handicap" min="0" max="54" step="0.1">
+        <input class="profile-edit-input profile-edit-half" id="profile-home-input" type="text" placeholder="Home course">
+      </div>
+      <button class="profile-save-btn" onclick="saveProfile()">Save profile</button>
+    </div>
+
+    <!-- Stats strip -->
+    <div class="profile-stats-strip">
+      <div class="pss-item">
+        <div class="pss-val" id="pss-rounds">0</div>
+        <div class="pss-label">Rounds</div>
+      </div>
+      <div class="pss-divider"></div>
+      <div class="pss-item">
+        <div class="pss-val" id="pss-hcp">—</div>
+        <div class="pss-label">Handicap</div>
+      </div>
+      <div class="pss-divider"></div>
+      <div class="pss-item">
+        <div class="pss-val" id="pss-best">—</div>
+        <div class="pss-label">Best round</div>
+      </div>
+      <div class="pss-divider"></div>
+      <div class="pss-item">
+        <div class="pss-val" id="pss-money">$0</div>
+        <div class="pss-label">Money won</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION TABS -->
+<div class="profile-tabs">
+  <div class="profile-tab active" onclick="switchProfileTab('stats', this)">Stats</div>
+  <div class="profile-tab" onclick="switchProfileTab('rounds', this)">Rounds</div>
+  <div class="profile-tab" onclick="switchProfileTab('bag', this)">My Bag</div>
+  <div class="profile-tab" onclick="switchProfileTab('settings', this)">Settings</div>
+</div>
+
+<!-- STATS TAB -->
+<div class="profile-panel active" id="panel-stats">
+
+  <!-- Stat cards grid -->
+  <div class="stat-cards-grid" id="stat-cards-grid"></div>
+
+  <!-- Season money card -->
+  <div class="section" style="margin-top:8px;">
+    <div class="section-header">
+      <div class="section-title">💰 Season money</div>
+    </div>
+    <div class="money-card" id="money-card">
+      <div class="money-card-empty">No rounds played yet — start a round to track your money</div>
+    </div>
+  </div>
+
+  <!-- Scoring breakdown -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🎯 Scoring breakdown</div>
+    </div>
+    <div class="scoring-breakdown" id="scoring-breakdown"></div>
+  </div>
+
+  <!-- Handicap calculator -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🧮 Handicap calculator</div>
+    </div>
+    <div class="hcp-calc-card">
+      <div class="hcp-calc-sub">Enter your last 20 scores (gross) and course/slope ratings to calculate your exact USGA handicap index</div>
+      <div class="hcp-scores-grid" id="hcp-scores-grid"></div>
+      <div class="hcp-calc-row">
+        <div class="hcp-calc-field">
+          <label class="hcp-calc-label">Course Rating</label>
+          <input class="hcp-calc-input" id="hcp-rating" type="number" placeholder="72.1" step="0.1" min="60" max="80">
+        </div>
+        <div class="hcp-calc-field">
+          <label class="hcp-calc-label">Slope Rating</label>
+          <input class="hcp-calc-input" id="hcp-slope" type="number" placeholder="113" min="55" max="155">
+        </div>
+      </div>
+      <button class="hcp-calc-btn" onclick="calculateHandicap()">Calculate my handicap</button>
+      <div class="hcp-result" id="hcp-result" style="display:none">
+        <div class="hcp-result-label">Your handicap index</div>
+        <div class="hcp-result-val" id="hcp-result-val">—</div>
+        <div class="hcp-result-sub" id="hcp-result-sub"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ROUNDS TAB -->
+<div class="profile-panel" id="panel-rounds">
+  <div class="rounds-list" id="rounds-list">
+    <div class="empty-state">
+      <div class="empty-icon">⛳</div>
+      <div class="empty-title">No rounds yet</div>
+      <div class="empty-sub">Complete a round to see your history here</div>
+      <a href="/setup-round.html" class="empty-cta">Start a round →</a>
+    </div>
+  </div>
+</div>
+
+<!-- BAG TAB -->
+<div class="profile-panel" id="panel-bag">
+  <!-- PROFILE STRIP -->
+  <div class="profile-strip" style="margin:0;border-radius:0;">
+    <div class="profile-stat">
+      <div class="profile-stat-val" id="stat-clubs">0</div>
+      <div class="profile-stat-label">clubs set</div>
+    </div>
+    <div class="profile-stat">
+      <div class="profile-stat-val" id="stat-longest">—</div>
+      <div class="profile-stat-label">longest (yds)</div>
+    </div>
+  </div>
+
+  <!-- BAG VISUAL STRIP -->
+  <div class="section" style="margin-top:16px;">
+    <div class="section-header">
+      <div class="section-title">Bag overview</div>
+      <button class="section-action" onclick="fillDefaults()">Fill with averages</button>
+    </div>
+    <div class="bag-summary" id="bag-summary"></div>
+  </div>
+
+  <!-- CLUBS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Club distances</div>
+      <button class="section-action" onclick="clearAll()">Clear all</button>
+    </div>
+    <div id="club-list"></div>
+  </div>
+
+  <!-- SHOT SHAPE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Shot shape</div>
+    </div>
+    <div class="shot-shape-grid">
+      <div class="shape-opt selected" id="shape-straight" onclick="selectShape('straight')">
+        <div class="shape-icon">➡️</div>
+        <div class="shape-name">Straight</div>
+        <div class="shape-desc">Plays to the card</div>
+      </div>
+      <div class="shape-opt" id="shape-fade" onclick="selectShape('fade')">
+        <div class="shape-icon">↗️</div>
+        <div class="shape-name">Fade / Slice</div>
+        <div class="shape-desc">Left-to-right flight</div>
+      </div>
+      <div class="shape-opt" id="shape-draw" onclick="selectShape('draw')">
+        <div class="shape-icon">↖️</div>
+        <div class="shape-name">Draw / Hook</div>
+        <div class="shape-desc">Right-to-left flight</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SMART BAG PREVIEW -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Smart suggestion preview</div>
+    </div>
+    <div class="smart-preview">
+      <div class="smart-preview-title">What the app suggests at these distances</div>
+      <div class="smart-scenario" id="smart-scenario"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS TAB -->
+<div class="profile-panel" id="panel-settings">
+  <div class="section" style="margin-top:16px;">
+    <div class="section-header"><div class="section-title">Account</div></div>
+    <div class="settings-list">
+      <div class="settings-row" onclick="showToast('Coming soon with Supabase backend')">
+        <div class="settings-row-left">
+          <div class="settings-row-icon">🔔</div>
+          <div>
+            <div class="settings-row-title">Push notifications</div>
+            <div class="settings-row-sub">Skins, scores, trash talk alerts</div>
+          </div>
+        </div>
+        <div class="settings-row-arrow">→</div>
+      </div>
+      <div class="settings-row" onclick="togglePublicScores(this)">
+        <div class="settings-row-left">
+          <div class="settings-row-icon">👁️</div>
+          <div>
+            <div class="settings-row-title">Show scores publicly</div>
+            <div class="settings-row-sub">Let others see your round history</div>
+          </div>
+        </div>
+        <div class="settings-toggle" id="public-scores-toggle">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+      <div class="settings-row" onclick="showToast('Venmo handle saved')">
+        <div class="settings-row-left">
+          <div class="settings-row-icon">💙</div>
+          <div>
+            <div class="settings-row-title">Venmo handle</div>
+            <div class="settings-row-sub" id="venmo-handle-display">Not set</div>
+          </div>
+        </div>
+        <input class="settings-inline-input" id="venmo-handle-input" placeholder="@yourhandle" oninput="updateVenmoDisplay(this.value)">
+      </div>
+      <div class="settings-row" onclick="clearAllData()">
+        <div class="settings-row-left">
+          <div class="settings-row-icon">🗑️</div>
+          <div>
+            <div class="settings-row-title" style="color:var(--red)">Clear all data</div>
+            <div class="settings-row-sub">Reset app — cannot be undone</div>
+          </div>
+        </div>
+        <div class="settings-row-arrow" style="color:var(--red)">→</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <a href="/feed.html" class="bottom-tab">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    Feed
+  </a>
+  <a href="/setup-round.html" class="bottom-tab">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Round
+  </a>
+  <a href="/scorecard.html" class="bottom-tab">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Live
+  </a>
+  <a href="/find-friends.html" class="bottom-tab">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Friends
+  </a>
+  <a href="/profile.html" class="bottom-tab active">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    My Bag
+  </a>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── LOAD PROFILE & ROUND HISTORY ──
+let profileData = {};
+let roundHistory = [];
+
+try {
+  profileData = JSON.parse(localStorage.getItem('strokestack_profile') || '{}');
+  roundHistory = JSON.parse(localStorage.getItem('strokestack_round_history') || '[]');
+  // Also check if there's a completed active round to add to history
+  const activeRound = JSON.parse(localStorage.getItem('strokestack_active_round') || '{}');
+  if (activeRound.course && activeRound.scores) {
+    // Check if already in history
+    const exists = roundHistory.find(r => r.code === activeRound.code);
+    if (!exists && activeRound.code) {
+      roundHistory.unshift(activeRound);
+      localStorage.setItem('strokestack_round_history', JSON.stringify(roundHistory));
+    }
+  }
+} catch(e) { console.error('Error loading profile data:', e); }
+
+// ── PROFILE TAB SWITCHING ──
+function switchProfileTab(tab, el) {
+  document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.profile-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`panel-${tab}`).classList.add('active');
+}
+
+// ── EDIT MODE ──
+let editMode = false;
+function toggleEditMode() {
+  editMode = !editMode;
+  document.getElementById('profile-edit-form').style.display = editMode ? 'flex' : 'none';
+  if (editMode) {
+    document.getElementById('profile-name-input').value  = profileData.name || '';
+    document.getElementById('profile-handle-input').value = profileData.username ? `@${profileData.username}` : '';
+    document.getElementById('profile-bio-input').value   = profileData.bio || '';
+    document.getElementById('profile-hcp-input').value   = profileData.hcp || '';
+    document.getElementById('profile-home-input').value  = profileData.homeCourse || '';
+  }
+}
+
+function saveProfile() {
+  const name   = document.getElementById('profile-name-input').value.trim();
+  const handle = document.getElementById('profile-handle-input').value.trim().replace('@','');
+  const bio    = document.getElementById('profile-bio-input').value.trim();
+  const hcp    = document.getElementById('profile-hcp-input').value;
+  const home   = document.getElementById('profile-home-input').value.trim();
+
+  profileData = { ...profileData, name, username: handle, bio, hcp, homeCourse: home };
+  localStorage.setItem('strokestack_profile', JSON.stringify(profileData));
+  renderProfileHeader();
+  toggleEditMode();
+  showToast('Profile saved ✓');
+}
+
+// ── RENDER PROFILE HEADER ──
+function renderProfileHeader() {
+  const name     = profileData.name || 'Your Name';
+  const username = profileData.username ? `@${profileData.username}` : '@username';
+  const bio      = profileData.bio || 'Add a bio in edit mode';
+  const hcp      = profileData.hcp || '—';
+  const color    = profileData.color;
+
+  const initials = name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const av = document.getElementById('profile-avatar');
+  av.textContent = initials;
+  if (color) { av.style.background = color.bg; av.style.color = color.text; }
+
+  document.getElementById('profile-name-display').textContent  = name;
+  document.getElementById('profile-handle-display').textContent = username;
+  document.getElementById('profile-bio-display').textContent   = bio;
+  document.getElementById('pss-hcp').textContent = hcp || '—';
+}
+
+// ── CALCULATE STATS FROM ROUND HISTORY ──
+function calcStats() {
+  if (!roundHistory.length) return { rounds:0, avg:0, best:null, moneyTotal:0, birdies:0, eagles:0, pars:0, bogeys:0, doubles:0, totalHoles:0 };
+
+  let totalScore = 0, totalPar = 0, totalHoles = 0;
+  let best = null, bestPar = null, moneyTotal = 0;
+  let eagles=0, birdies=0, pars=0, bogeys=0, doubles=0;
+
+  roundHistory.forEach(round => {
+    if (!round.scores || !round.holes) return;
+    const myIdx = 0; // First player is "me" until we have real accounts
+    const holes = round.holes || [];
+
+    round.scores.forEach((holeScores, hi) => {
+      if (!holeScores._confirmed) return;
+      const gross = holeScores[myIdx] || 0;
+      if (!gross) return;
+      const par = holes[hi]?.par || 4;
+      totalScore += gross;
+      totalPar += par;
+      totalHoles++;
+      const diff = gross - par;
+      if (diff <= -2) eagles++;
+      else if (diff === -1) birdies++;
+      else if (diff === 0) pars++;
+      else if (diff === 1) bogeys++;
+      else doubles++;
+    });
+
+    // Calculate round net score
+    const roundTotal = round.scores.reduce((s, h, hi) => {
+      if (!h._confirmed) return s;
+      const g = h[myIdx] || 0;
+      return g ? s + g : s;
+    }, 0);
+    const roundParTotal = round.scores.reduce((s, h, hi) => {
+      if (!h._confirmed || !h[myIdx]) return s;
+      return s + (holes[hi]?.par || 4);
+    }, 0);
+    const vspar = roundTotal - roundParTotal;
+    if (best === null || vspar < bestPar) { best = vspar; bestPar = vspar; }
+
+    // Money
+    if (round.scores) {
+      const nets = calcNetMoney(round);
+      moneyTotal += nets[myIdx] || 0;
+    }
+  });
+
+  const avg = totalHoles >= 18 ? Math.round(totalScore / (totalHoles/18)) : 0;
+  return { rounds: roundHistory.length, avg, best, moneyTotal, birdies, eagles, pars, bogeys, doubles, totalHoles };
+}
+
+function calcNetMoney(round) {
+  // Simple skins calculation from a historical round
+  const players = round.players || [];
+  const money = players.map(() => 0);
+  if (!round.scores || !round.holes) return money;
+
+  round.scores.forEach((holeScores, hi) => {
+    if (!holeScores._confirmed) return;
+    const nets = players.map((p, pi) => {
+      const gross = holeScores[pi] || 0;
+      return gross > 0 ? gross : 999;
+    });
+    const best = Math.min(...nets);
+    const winners = nets.reduce((acc, n, i) => n === best ? [...acc, i] : acc, []);
+    if (winners.length === 1) {
+      const stake = parseFloat((round.stake||'$5').toString().replace('$','')) || 5;
+      players.forEach((_, pi) => {
+        if (pi !== winners[0]) money[pi] -= stake;
+        else money[pi] += stake * (players.length - 1);
+      });
+    }
+  });
+  return money;
+}
+
+// ── BUILD STAT CARDS ──
+function buildStatCards() {
+  const stats = calcStats();
+
+  // Update header strip
+  document.getElementById('pss-rounds').textContent = stats.rounds;
+  document.getElementById('pss-best').textContent   = stats.best !== null ? (stats.best > 0 ? `+${stats.best}` : stats.best === 0 ? 'E' : stats.best) : '—';
+  document.getElementById('pss-money').textContent  = `${stats.moneyTotal >= 0 ? '+' : ''}$${Math.abs(stats.moneyTotal)}`;
+
+  const cards = [
+    { icon:'⛳', val: stats.rounds || '0',     label:'Rounds played',    cls:'' },
+    { icon:'📊', val: stats.avg ? `${stats.avg > 72 ? '+' : ''}${stats.avg}` : '—', label:'Avg score', cls:'' },
+    { icon:'🏆', val: stats.best !== null ? (stats.best <= 0 ? stats.best : `+${stats.best}`) : '—', label:'Best round (vs par)', cls: stats.best !== null && stats.best < 0 ? 'highlight' : '' },
+    { icon:'💰', val: `${stats.moneyTotal >= 0 ? '+' : '-'}$${Math.abs(stats.moneyTotal)}`, label:'Season money', cls: stats.moneyTotal >= 0 ? 'highlight' : 'red-card' },
+    { icon:'🐦', val: stats.birdies || '0',   label:'Birdies',           cls: stats.birdies > 0 ? 'highlight' : '' },
+    { icon:'🦅', val: stats.eagles || '0',    label:'Eagles',            cls: stats.eagles > 0 ? 'gold' : '' },
+  ];
+
+  document.getElementById('stat-cards-grid').innerHTML = cards.map((c, i) => `
+    <div class="stat-card ${c.cls}" style="animation-delay:${i*.06}s">
+      <div class="sc-icon">${c.icon}</div>
+      <div class="sc-val ${c.cls==='highlight'?'green':c.cls==='gold'?'gold':c.cls==='red-card'?'red':''}">${c.val}</div>
+      <div class="sc-label">${c.label}</div>
+    </div>`).join('');
+
+  // Money card
+  buildMoneyCard(stats);
+
+  // Scoring breakdown
+  buildScoringBreakdown(stats);
+}
+
+function buildMoneyCard(stats) {
+  const el = document.getElementById('money-card');
+  if (!roundHistory.length) {
+    el.innerHTML = `<div class="money-card-empty">No rounds played yet — start a round to track your money</div>`;
+    return;
+  }
+  const rows = roundHistory.slice(0, 5).map(r => {
+    const nets = calcNetMoney(r);
+    const val = nets[0] || 0;
+    return `<div class="money-row">
+      <div class="money-row-left">⛳ ${r.course || 'Unknown'} <span style="font-size:10px;color:var(--muted)">${r.date||''}</span></div>
+      <div class="money-row-val ${val >= 0 ? 'money-pos' : 'money-neg'}">${val >= 0 ? '+' : ''}$${Math.abs(val)}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML = rows;
+}
+
+function buildScoringBreakdown(stats) {
+  const total = stats.totalHoles || 1;
+  const items = [
+    { label:'🦅 Eagles',   count:stats.eagles,  cls:'eagle',  pct: Math.round(stats.eagles/total*100) },
+    { label:'🐦 Birdies',  count:stats.birdies, cls:'birdie', pct: Math.round(stats.birdies/total*100) },
+    { label:'⬜ Pars',     count:stats.pars,    cls:'par',    pct: Math.round(stats.pars/total*100) },
+    { label:'🔴 Bogeys',   count:stats.bogeys,  cls:'bogey',  pct: Math.round(stats.bogeys/total*100) },
+    { label:'💀 Double+',  count:stats.doubles, cls:'double', pct: Math.round(stats.doubles/total*100) },
+  ];
+  document.getElementById('scoring-breakdown').innerHTML = items.map(item => `
+    <div class="sb-row">
+      <div class="sb-label">${item.label}</div>
+      <div class="sb-bar-wrap"><div class="sb-bar ${item.cls}" style="width:${item.pct}%"></div></div>
+      <div class="sb-count">${item.count}</div>
+    </div>`).join('');
+}
+
+// ── ROUNDS HISTORY ──
+function buildRoundsHistory() {
+  const el = document.getElementById('rounds-list');
+  if (!roundHistory.length) return; // keeps the empty state
+
+  el.innerHTML = roundHistory.map((r, i) => {
+    const myIdx = 0;
+    const nets = calcNetMoney(r);
+    const money = nets[myIdx] || 0;
+    const confirmedHoles = (r.scores||[]).filter(h => h._confirmed).length;
+    return `<div class="round-history-card" style="animation-delay:${i*.05}s">
+      <div class="rhc-top">
+        <div>
+          <div class="rhc-course">${r.course || 'Unknown Course'}</div>
+          <div class="rhc-date">${r.date || ''} · ${confirmedHoles} holes</div>
+        </div>
+        <div class="rhc-score ${money>=0?'pos':money<0?'neg':'even'}">${money>=0?'+':''}$${Math.abs(money)}</div>
+      </div>
+      <div class="rhc-chips">
+        ${(r.formats||[]).map(f => `<div class="rhc-chip">${f}</div>`).join('')}
+        ${money > 0 ? `<div class="rhc-chip win">💰 Won $${money}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SETTINGS ──
+function togglePublicScores(row) {
+  const toggle = document.getElementById('public-scores-toggle');
+  const isOn = toggle.classList.contains('on');
+  toggle.classList.toggle('on', !isOn);
+  profileData.publicScores = !isOn;
+  localStorage.setItem('strokestack_profile', JSON.stringify(profileData));
+  showToast(isOn ? 'Scores hidden from feed' : 'Scores visible on feed ✓');
+}
+
+function updateVenmoDisplay(val) {
+  document.getElementById('venmo-handle-display').textContent = val || 'Not set';
+  profileData.venmo = val;
+  localStorage.setItem('strokestack_profile', JSON.stringify(profileData));
+}
+
+function clearAllData() {
+  if (confirm('Clear all StrokeStack data? This cannot be undone.')) {
+    localStorage.clear();
+    showToast('All data cleared');
+    setTimeout(() => window.location.href = '/signup.html', 1000);
+  }
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  renderProfileHeader();
+  buildStatCards();
+  buildRoundsHistory();
+  buildHcpScoreInputs();
+  // Init settings
+  if (profileData.publicScores !== false) {
+    document.getElementById('public-scores-toggle').classList.add('on');
+  }
+  if (profileData.venmo) {
+    document.getElementById('venmo-handle-input').value = profileData.venmo;
+    document.getElementById('venmo-handle-display').textContent = profileData.venmo;
+  }
+  // Load bag data
+  loadFromStorage();
+  buildClubList();
+  buildBagSummary();
+  updateStats();
+  updateSmartPreview();
+});
+
+// ── HANDICAP CALCULATOR ──
+function buildHcpScoreInputs() {
+  document.getElementById('hcp-scores-grid').innerHTML =
+    Array.from({length:20}, (_, i) =>
+      `<input class="hcp-score-input" id="hcp-s${i}" type="number"
+        placeholder="${i+1}" min="54" max="160">`
+    ).join('');
+}
+
+function calculateHandicap() {
+  const rating = parseFloat(document.getElementById('hcp-rating').value) || 72.0;
+  const slope  = parseFloat(document.getElementById('hcp-slope').value)  || 113;
+
+  // Collect entered scores
+  const scores = [];
+  for (let i = 0; i < 20; i++) {
+    const val = parseInt(document.getElementById(`hcp-s${i}`)?.value);
+    if (!isNaN(val) && val > 54) scores.push(val);
+  }
+
+  if (scores.length < 3) {
+    showToast('Enter at least 3 scores to calculate');
+    return;
+  }
+
+  // Calculate score differentials: (Score - Course Rating) × 113 / Slope Rating
+  const diffs = scores.map(s => ((s - rating) * 113 / slope));
+  diffs.sort((a,b) => a - b);
+
+  // USGA rules: use lowest differentials based on number of scores
+  const countMap = {3:1,4:1,5:1,6:2,7:2,8:2,9:3,10:3,11:3,12:3,13:4,14:4,15:4,16:5,17:5,18:5,19:6,20:8};
+  const useCount = countMap[Math.min(scores.length, 20)] || 8;
+  const best = diffs.slice(0, useCount);
+  const avg  = best.reduce((a,b) => a+b, 0) / best.length;
+  const index = Math.floor(avg * 0.96 * 10) / 10; // Apply 96% reduction, round down to 1dp
+
+  const result = document.getElementById('hcp-result');
+  const valEl  = document.getElementById('hcp-result-val');
+  const subEl  = document.getElementById('hcp-result-sub');
+
+  valEl.textContent = index.toFixed(1);
+  subEl.textContent = `Based on ${scores.length} scores · Used ${useCount} best differential${useCount>1?'s':''} · Avg diff: ${avg.toFixed(2)}`;
+  result.style.display = 'block';
+
+  // Save to profile
+  profileData.hcp = index.toFixed(1);
+  localStorage.setItem('strokestack_profile', JSON.stringify(profileData));
+  document.getElementById('pss-hcp').textContent = index.toFixed(1);
+
+  showToast(`Handicap index: ${index.toFixed(1)} ✓`);
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+const CLUBS = [
+  {
+    category: 'Woods',
+    clubs: [
+      {id:'driver',  name:'Driver',    type:'1W',   icon:'🏌️', defaultYds:230},
+      {id:'3wood',   name:'3-Wood',    type:'3W',   icon:'🪵', defaultYds:210},
+      {id:'5wood',   name:'5-Wood',    type:'5W',   icon:'🪵', defaultYds:195},
+      {id:'7wood',   name:'7-Wood',    type:'7W',   icon:'🪵', defaultYds:180},
+    ]
+  },
+  {
+    category: 'Hybrids',
+    clubs: [
+      {id:'2hybrid', name:'2-Hybrid',  type:'2H',   icon:'🔀', defaultYds:200},
+      {id:'3hybrid', name:'3-Hybrid',  type:'3H',   icon:'🔀', defaultYds:185},
+      {id:'4hybrid', name:'4-Hybrid',  type:'4H',   icon:'🔀', defaultYds:175},
+      {id:'5hybrid', name:'5-Hybrid',  type:'5H',   icon:'🔀', defaultYds:165},
+    ]
+  },
+  {
+    category: 'Irons',
+    clubs: [
+      {id:'3iron',   name:'3-Iron',    type:'3I',   icon:'🔩', defaultYds:185},
+      {id:'4iron',   name:'4-Iron',    type:'4I',   icon:'🔩', defaultYds:175},
+      {id:'5iron',   name:'5-Iron',    type:'5I',   icon:'5I', icon:'🔩', defaultYds:162},
+      {id:'6iron',   name:'6-Iron',    type:'6I',   icon:'🔩', defaultYds:150},
+      {id:'7iron',   name:'7-Iron',    type:'7I',   icon:'🔩', defaultYds:138},
+      {id:'8iron',   name:'8-Iron',    type:'8I',   icon:'🔩', defaultYds:126},
+      {id:'9iron',   name:'9-Iron',    type:'9I',   icon:'🔩', defaultYds:114},
+    ]
+  },
+  {
+    category: 'Wedges',
+    clubs: [
+      {id:'pw',      name:'Pitching Wedge', type:'PW', icon:'⛏️', defaultYds:104},
+      {id:'gw',      name:'Gap Wedge',      type:'GW', icon:'⛏️', defaultYds:92},
+      {id:'sw',      name:'Sand Wedge',     type:'SW', icon:'⛏️', defaultYds:80},
+      {id:'lw',      name:'Lob Wedge',      type:'LW', icon:'⛏️', defaultYds:65},
+    ]
+  },
+  {
+    category: 'Putter',
+    clubs: [
+      {id:'putter',  name:'Putter',    type:'PT',   icon:'🏒', defaultYds:0},
+    ]
+  }
+];
+
+// All clubs flat
+const ALL_CLUBS = CLUBS.flatMap(c => c.clubs);
+
+// ── STATE ──
+let bagYards = {};       // clubId → yardage
+let activeBag = {};      // clubId → bool (in bag)
+let shotShape = 'straight';
+
+// ── STORAGE ──
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem('strokestack_bag');
+    if (saved) {
+      const data = JSON.parse(saved);
+      bagYards  = data.bagYards  || {};
+      activeBag = data.activeBag || {};
+      shotShape = data.shotShape || 'straight';
+      selectShape(shotShape);
+    } else {
+      // Default active clubs (typical bag)
+      ['driver','3wood','5wood','4hybrid','5iron','6iron','7iron','8iron','9iron','pw','gw','sw','lw','putter']
+        .forEach(id => activeBag[id] = true);
+    }
+  } catch(e) { console.error('loadFromStorage error:', e); }
+}
+
+function saveBag() {
+  const data = { bagYards, activeBag, shotShape };
+  localStorage.setItem('strokestack_bag', JSON.stringify(data));
+  localStorage.setItem('strokestack_clubs', JSON.stringify(getClubsForScorecard()));
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Saved ✓';
+  btn.classList.add('saved');
+  setTimeout(() => { btn.textContent='Save bag'; btn.classList.remove('saved'); }, 2000);
+  showToast('Bag saved — club suggestions updated');
+}
+
+function getClubsForScorecard() {
+  return ALL_CLUBS
+    .filter(c => activeBag[c.id] && bagYards[c.id] > 0)
+    .map(c => ({ name: c.name, dist: parseInt(bagYards[c.id]), icon: c.icon, id: c.id }))
+    .sort((a,b) => b.dist - a.dist);
+}
+
+// ── BUILD UI ──
+function buildClubList() {
+  const container = document.getElementById('club-list');
+  container.innerHTML = '';
+
+  CLUBS.forEach(cat => {
+    const catDiv = document.createElement('div');
+    catDiv.className = 'club-category';
+
+    const label = document.createElement('div');
+    label.className = 'club-cat-label';
+    label.textContent = cat.category;
+    catDiv.appendChild(label);
+
+    cat.clubs.forEach(club => {
+      const inBag = activeBag[club.id] !== false; // default true
+      const yds   = bagYards[club.id] || '';
+      if (club.id === 'putter') return; // putter always in bag, no yardage needed
+
+      const row = document.createElement('div');
+      row.className = `club-row${inBag ? ' active' : ''}`;
+      row.id = `row-${club.id}`;
+      row.innerHTML = `
+        <div class="club-icon">${club.icon}</div>
+        <div class="club-info">
+          <div class="club-name">${club.name}</div>
+          <div class="club-type">${club.type}</div>
+        </div>
+        <div class="club-yds-wrap">
+          <input class="club-yds-input" id="yds-${club.id}" type="number"
+            placeholder="yds" min="1" max="400"
+            value="${yds}"
+            oninput="setYards('${club.id}', this.value)"
+            ${!inBag ? 'disabled' : ''}>
+          <span class="club-yds-label">yds</span>
+        </div>
+        <div class="club-toggle" onclick="toggleClub('${club.id}')" title="${inBag?'Remove from bag':'Add to bag'}">
+          ${inBag
+            ? '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
+            : '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+          }
+        </div>`;
+      catDiv.appendChild(row);
+    });
+
+    // Putter row special
+    if (cat.category === 'Putter') {
+      const row = document.createElement('div');
+      row.className = 'club-row active';
+      row.innerHTML = `
+        <div class="club-icon">🏒</div>
+        <div class="club-info">
+          <div class="club-name">Putter</div>
+          <div class="club-type">PT · Always in bag</div>
+        </div>
+        <div class="club-yds-wrap">
+          <div style="font-size:12px;color:var(--muted);padding:0 8px;">—</div>
+        </div>
+        <div class="club-toggle" style="opacity:.3;cursor:default">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>`;
+      catDiv.appendChild(row);
+    }
+
+    container.appendChild(catDiv);
+  });
+}
+
+function buildBagSummary() {
+  const strip = document.getElementById('bag-summary');
+  const clubs = ALL_CLUBS.filter(c => c.id !== 'putter');
+  strip.innerHTML = clubs.map(c => {
+    const y = bagYards[c.id];
+    const inBag = activeBag[c.id] !== false;
+    return `<div class="bag-mini ${inBag && y ? 'has-yds' : ''}" onclick="scrollToClub('${c.id}')">
+      <div class="bag-mini-icon">${c.icon}</div>
+      <div class="bag-mini-name">${c.type}</div>
+      <div class="bag-mini-yds">${y || '—'}</div>
+    </div>`;
+  }).join('');
+}
+
+function scrollToClub(id) {
+  const el = document.getElementById(`yds-${id}`);
+  if (el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.focus(); }
+}
+
+// ── CLUB ACTIONS ──
+function toggleClub(id) {
+  activeBag[id] = !activeBag[id];
+  const row = document.getElementById(`row-${id}`);
+  const input = document.getElementById(`yds-${id}`);
+  if (activeBag[id]) {
+    row.classList.add('active');
+    input.disabled = false;
+    row.querySelector('.club-toggle').innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+  } else {
+    row.classList.remove('active');
+    input.disabled = true;
+    row.querySelector('.club-toggle').innerHTML = '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  }
+  updateStats(); buildBagSummary(); updateSmartPreview();
+}
+
+function setYards(id, val) {
+  bagYards[id] = val ? parseInt(val) : '';
+  updateStats(); buildBagSummary(); updateSmartPreview();
+}
+
+function selectShape(shape) {
+  shotShape = shape;
+  ['straight','fade','draw'].forEach(s => {
+    document.getElementById(`shape-${s}`).classList.toggle('selected', s === shape);
+  });
+}
+
+function fillDefaults() {
+  ALL_CLUBS.filter(c=>c.id!=='putter').forEach(c => {
+    bagYards[c.id] = c.defaultYds;
+    activeBag[c.id] = true;
+    const input = document.getElementById(`yds-${c.id}`);
+    if (input) { input.value = c.defaultYds; input.disabled = false; }
+    const row = document.getElementById(`row-${c.id}`);
+    if (row) {
+      row.classList.add('active');
+      row.querySelector('.club-toggle').innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+    }
+  });
+  updateStats(); buildBagSummary(); updateSmartPreview();
+  showToast('Average distances loaded — adjust to match your game');
+}
+
+function clearAll() {
+  ALL_CLUBS.filter(c=>c.id!=='putter').forEach(c => {
+    bagYards[c.id] = '';
+    const input = document.getElementById(`yds-${c.id}`);
+    if (input) input.value = '';
+  });
+  updateStats(); buildBagSummary(); updateSmartPreview();
+}
+
+// ── STATS ──
+function updateStats() {
+  const set = ALL_CLUBS.filter(c => activeBag[c.id] && bagYards[c.id] > 0);
+  document.getElementById('stat-clubs').textContent = set.length;
+  const maxYds = Math.max(0, ...set.map(c => bagYards[c.id] || 0));
+  document.getElementById('stat-longest').textContent = maxYds || '—';
+}
+
+function updateAvatar() {
+  // Now handled by renderProfileHeader — this is a no-op kept for compatibility
+}
+
+// ── SMART PREVIEW ──
+const PREVIEW_DISTANCES = [220, 175, 150, 120, 90, 60];
+
+function updateSmartPreview() {
+  const clubs = getClubsForScorecard();
+  if (!clubs.length) {
+    document.getElementById('smart-scenario').innerHTML =
+      '<div style="font-size:13px;color:var(--muted);padding:8px 0;">Enter your club distances above to see suggestions.</div>';
+    return;
+  }
+
+  const rows = PREVIEW_DISTANCES.map(dist => {
+    const best = clubs.reduce((prev, cur) =>
+      Math.abs(cur.dist - dist) < Math.abs(prev.dist - dist) ? cur : prev
+    );
+    return `<div class="smart-row">
+      <div class="smart-dist">${dist} yds to pin</div>
+      <div class="smart-club">
+        <span class="smart-club-icon">${best.icon}</span>
+        <span>${best.name}</span>
+        <span style="color:var(--muted);font-size:11px;">(${best.dist}y carry)</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('smart-scenario').innerHTML = rows;
+}
+
+</script>
+</body>
+</html>
